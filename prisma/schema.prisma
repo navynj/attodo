@@ -143,7 +143,6 @@ model Event {
   type        String
   id          String   @id @default(cuid())
   title       String
-  status      String
   date        DateTime
   description String?
   isPinned    Boolean?
@@ -156,9 +155,9 @@ model Event {
 
 model Note {
   type        String
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
-  status      String
+  date        DateTime?
   description String?
   isPinned    Boolean?
 

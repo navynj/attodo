@@ -13,10 +13,10 @@ const Page = () => {
   const { data: events } = useAtomValue(eventsAtom);
   const { data: notes } = useAtomValue(notesAtom);
 
-  const pushDate = (date: Date) => {
+  const pushDate = (date: string) => {
     const dashedDate = getDashDate(date);
     if (dayjs(dashedDate) >= dayjs(getDashDate(new Date()))) {
-      dateList.push(getDashDate(date));
+      dashedDate && dateList.push(dashedDate);
     }
   };
 

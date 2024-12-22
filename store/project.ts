@@ -9,8 +9,8 @@ export interface ProjectType {
   icon: string;
   title: string;
   status?: ProjectStatusType;
-  startDate?: Date;
-  dueDate?: Date;
+  startDate?: string;
+  dueDate?: string;
   description?: string;
   isImportant?: boolean;
   isUrgent?: boolean;
@@ -20,41 +20,14 @@ export interface ProjectType {
   goals: GoalType[];
 }
 
-export type ProjectStatusType = 'done' | 'dismissed';
+export type ProjectStatusType = 'todo' | 'done' | 'dismissed';
 
 export const projectAtom = atomWithQuery<ProjectType[]>((get) => {
   return {
-    queryKey: ['project', get(todayAtom)],
-    queryFn: async ({ queryKey: [, today] }) => {
-      //     const res = await fetch(
-      //       process.env.NEXT_PUBLIC_BASE_URL + `/api/log?date=${getDashDate(today as Date)}`
-      //     );
-      //     const logs = await res.json();
-
-      //   return convertTaskData(logs);
-      return [
-        {
-          id: 'rock',
-          icon: '🥁',
-          title: 'Rock Band',
-          tasks: [],
-          goals: [],
-        },
-        {
-          id: 'jazz',
-          icon: '🎷',
-          title: 'Jazz Band',
-          tasks: [],
-          goals: [],
-        },
-        {
-          id: 'blog',
-          icon: '⌨️',
-          title: 'Blog Posting',
-          tasks: [],
-          goals: [],
-        },
-      ];
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/project');
+      return await res.json();
     },
   };
 });
