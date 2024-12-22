@@ -6,7 +6,7 @@ import { tasksAtom } from '@/store/task';
 import { getDashDate, getDateStr } from '@/util/date';
 import dayjs from 'dayjs';
 import { useAtomValue } from 'jotai';
-import ListItem from '../_components/ListItem';
+import ListItem from '../../_components/ListItem';
 
 const Page = () => {
   const { data: tasks } = useAtomValue(tasksAtom);

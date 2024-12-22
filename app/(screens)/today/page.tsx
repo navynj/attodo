@@ -9,7 +9,7 @@ import { useAtomValue } from 'jotai';
 import { goalsAtom } from '@/store/goals';
 import { todayAtom } from '@/store/ui';
 import { getDashDate } from '@/util/date';
-import ListItem from '../_components/ListItem';
+import ListItem from '../../_components/ListItem';
 
 const Page = () => {
   const today = useAtomValue(todayAtom);
