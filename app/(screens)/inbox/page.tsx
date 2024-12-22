@@ -3,7 +3,7 @@
 import { goalsAtom } from '@/store/goals';
 import { tasksAtom } from '@/store/task';
 import { useAtomValue } from 'jotai';
-import ListItem from '../_components/ListItem';
+import ListItem from '../../_components/ListItem';
 
 const Page = () => {
   const { data: goals } = useAtomValue(goalsAtom);
