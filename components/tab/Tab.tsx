@@ -7,6 +7,7 @@ interface TabItemType {
   icon?: ReactElement;
   label: string;
   value: string;
+  isDefault?: boolean;
 }
 
 interface TabProps<T extends FieldValues> extends ClassNameProps {
@@ -62,6 +63,7 @@ const Tab = <T extends FieldValues>({
               value={tabData.value}
               name={id}
               checked={value ? value === tabData.value : undefined}
+              defaultChecked={tabData.isDefault}
               onChange={changeHandler}
               onClick={enableToggle ? toggleHandler : undefined}
               hidden

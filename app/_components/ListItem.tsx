@@ -7,13 +7,13 @@ import React from 'react';
 import { BsDash, BsDot } from 'react-icons/bs';
 import { FaArrowRight, FaSquare, FaX, FaXmark } from 'react-icons/fa6';
 import Button from '@/components/button/Button';
-import { formDataAtom } from '@/store/ui';
+import { mainFormDataAtom } from '@/store/ui';
 import { useSetAtom } from 'jotai';
 import { redirect, useRouter } from 'next/navigation';
 import { FaCheckSquare } from 'react-icons/fa';
 
 const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
-  const setFormData = useSetAtom(formDataAtom);
+  const setFormData = useSetAtom(mainFormDataAtom);
   const { type, id, title } = item;
 
   return type === 'goal' ? (
@@ -21,7 +21,7 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
   ) : (
     <Link
       className="flex items-center gap-4"
-      href={`?main-input=show&id=${id}`}
+      href={`?main-input=show`}
       onClick={() => {
         setFormData(item);
       }}
@@ -57,13 +57,13 @@ const TaskIcon = ({ id, status }: Partial<TaskType>) => {
 
 const GoalItem = (item: GoalType) => {
   const router = useRouter();
-  const setFormData = useSetAtom(formDataAtom);
+  const setFormData = useSetAtom(mainFormDataAtom);
   const { type, id, title } = item;
 
   return (
     <div className="flex justify-between items-center gap-4">
       <Link
-        href={`?main-input=show&id=${id}`}
+        href={`?main-input=show`}
         className="w-full font-bold"
         onClick={() => {
           setFormData(item);
