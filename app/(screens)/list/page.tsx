@@ -49,7 +49,12 @@ const Page = () => {
                 ))}
               {tasks
                 ?.filter((task) => {
-                  if (task.date && getDashDate(task.date) === date) return true;
+                  if (
+                    task.status === 'todo' &&
+                    task.date &&
+                    getDashDate(task.date) === date
+                  )
+                    return true;
                 })
                 .map((task) => (
                   <ListItem key={task.id} {...task} />

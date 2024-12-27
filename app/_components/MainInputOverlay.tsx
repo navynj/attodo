@@ -67,26 +67,31 @@ const MainInputOverlay = () => {
     };
     const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/${values.type}`;
 
-    if (defaultValues) {
-      const response = await fetch(`${url}/${defaultValues.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(values),
-      });
-      if (!response.ok) {
-        throw new Error(response.status + ' ' + response.statusText);
+    try {
+      if (defaultValues) {
+        const response = await fetch(`${url}/${defaultValues.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          throw new Error(response.status + ' ' + response.statusText);
+        }
+        router.back();
+      } else {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify({
+            ...values,
+            status:
+              values.type !== 'event' && values.type !== 'note' ? 'todo' : undefined,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(response.status + ' ' + response.statusText);
+        }
       }
-      router.back();
-    } else {
-      const response = await fetch(url, {
-        method: 'POST',
-        body: JSON.stringify({
-          ...values,
-          status: values.type !== 'event' && values.type !== 'note' ? 'todo' : undefined,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(response.status + ' ' + response.statusText);
-      }
+    } catch (error) {
+      console.error(error);
     }
 
     form.reset();

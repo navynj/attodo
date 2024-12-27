@@ -1,6 +1,6 @@
 import { GoalType } from '@/store/goals';
 import { NoteType } from '@/store/note';
-import { TaskType } from '@/store/task';
+import { tasksAtom, TaskType } from '@/store/task';
 import { EventType } from '@/store/event';
 import Link from 'next/link';
 import React from 'react';
@@ -8,7 +8,7 @@ import { BsDash, BsDot } from 'react-icons/bs';
 import { FaArrowRight, FaSquare, FaX, FaXmark } from 'react-icons/fa6';
 import Button from '@/components/button/Button';
 import { mainFormDataAtom } from '@/store/ui';
-import { useSetAtom } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { redirect, useRouter } from 'next/navigation';
 import { FaCheckSquare } from 'react-icons/fa';
 
@@ -19,13 +19,7 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
   return type === 'goal' ? (
     <GoalItem {...item} />
   ) : (
-    <Link
-      className="flex items-center gap-4"
-      href={`?main-input=show`}
-      onClick={() => {
-        setFormData(item);
-      }}
-    >
+    <div className="flex items-center gap-4">
       {type === 'task' ? (
         <TaskIcon id={id} status={item.status} />
       ) : (
@@ -34,21 +28,53 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
           {type === 'note' && <BsDash className="text-gray-300" />}
         </>
       )}{' '}
-      <span>{title}</span>
-    </Link>
+      <Link
+        className="w-full h-full"
+        href={`?main-input=show`}
+        onClick={() => {
+          setFormData(item);
+        }}
+      >
+        {title}
+      </Link>
+    </div>
   );
 };
 
 const TaskIcon = ({ id, status }: Partial<TaskType>) => {
-  const toggleDone = () => {
-    // TODO: Implement toggleDone
+  const { refetch } = useAtomValue(tasksAtom);
+  
+  const updateStatus = async (status: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/task/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error(response.status + ' ' + response.statusText);
+      }
+
+      refetch();
+    } catch (error) {
+      console.error(error);
+    }
   };
+
   return (
     <>
       {status === 'todo' && (
-        <FaSquare className="text-gray-200 text-sm" onClick={toggleDone} />
+        <FaSquare
+          className="text-gray-200 text-sm cursor-pointer"
+          onClick={updateStatus.bind(null, 'done')}
+        />
       )}
-      {status === 'done' && <FaCheckSquare className="text-sm" onClick={toggleDone} />}
+      {status === 'done' && (
+        <FaCheckSquare
+          className="text-sm cursor-pointer"
+          onClick={updateStatus.bind(null, 'todo')}
+        />
+      )}
       {status === 'delayed' && <FaArrowRight className="text-gray-300" />}
       {status === 'dismissed' && <FaXmark className="text-gray-300" />}
     </>

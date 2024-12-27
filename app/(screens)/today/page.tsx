@@ -14,6 +14,7 @@ import ListItem from '../../_components/ListItem';
 import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 import Loader from '@/components/loader/Loader';
+import List from '@/app/_components/List';
 
 dayjs.extend(utc);
 
@@ -44,30 +45,46 @@ const Page = () => {
             <Loader />
           </div>
         ) : (
-          notes
-            ?.filter((note) => getDashDate(note.date) === getDashDate(today))
-            ?.map((note) => <ListItem key={note.id} {...note} />)
+          <>
+            {notes
+              ?.filter((note) => getDashDate(note.date) === getDashDate(today))
+              ?.map((note) => (
+                <ListItem key={note.id} {...note} />
+              ))}
+            {events
+              ?.filter((event) => getDashDate(event.date) === getDashDate(today))
+              ?.map((event) => (
+                <ListItem key={event.id} {...event} />
+              ))}
+            {tasks
+              ?.filter((task) => {
+                if (
+                  task.status !== 'done' &&
+                  task.status !== 'dismissed' &&
+                  task.date &&
+                  getDashDate(task.date) === getDashDate(today)
+                ) {
+                  return true;
+                }
+              })
+              ?.map((task) => (
+                <ListItem key={task.id} {...task} />
+              ))}
+          </>
         )}
-        {events
-          ?.filter((event) => getDashDate(event.date) === getDashDate(today))
-          ?.map((event) => (
-            <ListItem key={event.id} {...event} />
-          ))}
-        {tasks
-          ?.filter((task) => {
-            if (
-              task.status !== 'done' &&
-              task.status !== 'dismissed' &&
-              task.date &&
-              getDashDate(task.date) === getDashDate(today)
-            ) {
-              return true;
-            }
-          })
-          ?.map((task) => (
-            <ListItem key={task.id} {...task} />
-          ))}
       </ul>
+      <List
+        title="Completed Tasks"
+        className="mt-6 [&>div]:mb-6 [&_li]:text-base [&_svg]:text-xs"
+        items={
+          tasks?.filter(
+            (task) =>
+              task.status === 'done' &&
+              (task.date && getDashDate(task.date) === getDashDate(today))
+          ) || []
+        }
+        isFolded={true}
+      />
       {!!(
         goals
           ?.filter(
