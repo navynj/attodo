@@ -1,6 +1,7 @@
 'use client';
 
 import Button from '@/components/button/Button';
+import Loader from '@/components/loader/Loader';
 import OverlayForm from '@/components/overlay/OverlayForm';
 import Tab from '@/components/tab/Tab';
 import { eventsAtom } from '@/store/event';
@@ -21,7 +22,7 @@ import * as z from 'zod';
 const formSchema = z.object({
   id: z.string().optional(),
   type: z.string(),
-  title: z.string(),
+  title: z.string().nonempty(),
   description: z.string().optional().nullable(),
   date: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),
@@ -47,7 +48,7 @@ const MainInputOverlay = () => {
   const { refetch: refetchTasks } = useAtomValue(tasksAtom);
   const { refetch: refetchEvents } = useAtomValue(eventsAtom);
   const { refetch: refetchNotes } = useAtomValue(notesAtom);
-  const [defaultValues, setFormData] = useAtom(mainFormDataAtom);
+  const [defaultValues, setDefaultValues] = useAtom(mainFormDataAtom);
   const today = useAtomValue(todayAtom);
 
   const form = useForm<mainFormSchemaType>({
@@ -89,11 +90,9 @@ const MainInputOverlay = () => {
     }
 
     form.reset();
-    !defaultValues && form.setValue('type', values.type);
-    !defaultValues && pathname === '/today' && form.setValue('date', today.toISOString());
-    console.log(defaultValues ? undefined : { type: values.type });
-    setFormData(undefined);
-    reset(values.type);
+    initTypeByPathname();
+
+    setDefaultValues(undefined);
     refetch(values.type);
   };
 
@@ -105,14 +104,12 @@ const MainInputOverlay = () => {
 
       router.back();
       form.reset();
-      setFormData(undefined);
+      setDefaultValues(undefined);
       refetch(type);
     } catch (error) {
       throw error;
     }
   };
-
-  const reset = (type?: string) => {};
 
   const refetch = (type: string) => {
     switch (type) {
@@ -141,42 +138,74 @@ const MainInputOverlay = () => {
   };
 
   const initTypeByPathname = () => {
-    if (pathname === '/inbox') {
-      form.setValue('type', 'goal');
-    } else if (pathname !== '/inbox' && pathname !== '/project') {
-      form.setValue('type', 'task');
-      if (pathname === '/today') {
-        form.setValue('date', today.toISOString());
+    if (!defaultValues) {
+      if (pathname === '/inbox') {
+        form.setValue('type', 'goal');
+      } else if (pathname !== '/inbox' && pathname !== '/project') {
+        form.setValue('type', 'task');
+        if (pathname === '/today') {
+          form.setValue('date', today.toISOString());
+        }
       }
     }
   };
 
+  // NOTE: Init when form is open/close
+  useEffect(() => {
+    if (isOpen) {
+      initTypeByPathname();
+    } else {
+      form.reset();
+      setDefaultValues(undefined);
+    }
+  }, [isOpen]);
+
   // NOTE: Init default values (In case of update)
   useEffect(() => {
-    for (const keyStr in defaultValues) {
-      const key = keyStr as Path<mainFormSchemaType>;
-      form.setValue(key, defaultValues[key]);
+    if (defaultValues) {
+      for (const keyStr in defaultValues) {
+        const key = keyStr as Path<mainFormSchemaType>;
+        form.setValue(key, defaultValues[key]);
 
-      if (goalIdParam) {
-        form.setValue('goalId', goalIdParam);
+        if (goalIdParam) {
+          form.setValue('goalId', goalIdParam);
+        }
       }
+    } else {
+      form.reset();
     }
   }, [defaultValues, goalIdParam]);
 
+  // NOTE: Init type
   useEffect(() => {
     form.setValue('type', typeParam);
   }, [typeParam]);
 
   useEffect(() => {
-    if (isOpen) {
-      if (!defaultValues) {
-        initTypeByPathname();
-      }
-    } else {
-      form.reset();
-      setFormData(undefined);
+    const title = form.getValues().title;
+    const type = form.getValues().type;
+
+    if (!defaultValues) {
+      form.reset({ type, title });
     }
-  }, [isOpen]);
+  }, [form.watch('type')]);
+
+  // NOTE: isPinned with date not allowed
+  useEffect(() => {
+    const isPinned = form.watch('isPinned');
+
+    if (isPinned) {
+      form.setValue('date', null);
+    }
+  }, [form.watch('isPinned')]);
+
+  useEffect(() => {
+    const date = form.watch('date');
+
+    if (date) {
+      form.setValue('isPinned', false);
+    }
+  }, [form.watch('date')]);
 
   return (
     <OverlayForm<mainFormSchemaType>
@@ -187,7 +216,7 @@ const MainInputOverlay = () => {
       hideButtons={true}
       disalbeBackOnSubmit={true}
       onClose={() => {
-        setFormData(undefined);
+        setDefaultValues(undefined);
       }}
     >
       {!defaultValues && (
@@ -248,9 +277,16 @@ const MainInputOverlay = () => {
           type="submit"
           className={`absolute top-[50%] transform translate-y-[-50%] right-[0.5rem] p-1 ${
             defaultValues ? 'w-[3.5rem]' : 'w-[3rem]'
-          } text-center text-xs`}
+          } text-center text-xs ${form.formState.isSubmitting ? 'opacity-25' : ''}`}
+          disabled={form.formState.isSubmitting}
         >
-          {defaultValues ? 'Update' : 'Add'}
+          {form.formState.isSubmitting ? (
+            <Loader isDark={true} className="w-4 h-4" />
+          ) : defaultValues ? (
+            'Update'
+          ) : (
+            'Add'
+          )}
         </Button>
       </div>
       {form.watch('type') === 'project' && <ProjectFields form={form} />}
@@ -275,18 +311,19 @@ const MainInputOverlay = () => {
           </div>
         ))}
       </div>
-      {defaultValues && (
+      {defaultValues && !form.formState.isSubmitting && (
         <div className="flex justify-center items-center [&>button]:w-full py-2 mt-4 font-extrabold text-xs text-gray-400">
           <button
-            className="flex justify-center gap-2"
+            type="button"
+            className="flex justify-center items-center gap-2"
             onClick={deleteHandler.bind(null, defaultValues)}
           >
             <FaTrash /> <span>Delete</span>
           </button>
-          <button className="flex justify-center gap-2">
+          <button type="button" className="flex justify-center items-center gap-2">
             <FaXmark /> <span>Dismiss</span>
           </button>
-          <button className="flex justify-center gap-2">
+          <button type="button" className="flex justify-center items-center gap-2">
             <FaArrowRight /> <span>Delay</span>
           </button>
         </div>
