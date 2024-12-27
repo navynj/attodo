@@ -13,30 +13,41 @@ import ListItem from '../../_components/ListItem';
 
 import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
+import Loader from '@/components/loader/Loader';
 
 dayjs.extend(utc);
 
 const Page = () => {
   const today = useAtomValue(todayAtom);
 
-  const { data: tasks } = useAtomValue(tasksAtom);
-  const { data: events } = useAtomValue(eventsAtom);
-  const { data: notes } = useAtomValue(notesAtom);
-  const { data: goals } = useAtomValue(goalsAtom);
+  const { data: tasks, isFetching: isFetchingTasks } = useAtomValue(tasksAtom);
+  const { data: events, isFetching: isFetchingEvents } = useAtomValue(eventsAtom);
+  const { data: notes, isFetching: isFetchingNotes } = useAtomValue(notesAtom);
+  const { data: goals, isFetching: isFetchingGoals } = useAtomValue(goalsAtom);
 
   return (
-    <div className="p-14 space-y-10">
+    <div className="h-full p-14 space-y-10">
       {/* Header */}
       <div className="mt-4 flex justify-between">
         <YearMonthNav />
         <DayNav />
       </div>
-      <ul className="space-y-6">
-        {notes
-          ?.filter((note) => getDashDate(note.date) === getDashDate(today))
-          ?.map((note) => (
-            <ListItem key={note.id} {...note} />
-          ))}
+      <ul
+        className={`${
+          isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals
+            ? 'h-[80%]'
+            : ''
+        } space-y-6`}
+      >
+        {isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals ? (
+          <div className="w-full h-full flex justify-center items-center">
+            <Loader />
+          </div>
+        ) : (
+          notes
+            ?.filter((note) => getDashDate(note.date) === getDashDate(today))
+            ?.map((note) => <ListItem key={note.id} {...note} />)
+        )}
         {events
           ?.filter((event) => getDashDate(event.date) === getDashDate(today))
           ?.map((event) => (
@@ -64,16 +75,13 @@ const Page = () => {
               goal.isPinned && goal.status !== 'done' && goal.status !== 'dismissed'
           )
           ?.map((goal) => <ListItem key={goal.id} {...goal} />).length ||
-        tasks?.filter((task) => {
-          console.log(getDashDate(task.date));
-
-          return (
+        tasks?.filter(
+          (task) =>
             task.status !== 'done' &&
             task.status !== 'dismissed' &&
             task.isPinned &&
             (!task.date || getDashDate(task.date) !== getDashDate(today))
-          );
-        }).length
+        ).length
       ) && (
         <ul className="box-content w-full ml-[-1.5rem] space-y-4 p-6 bg-gray-50 rounded-xl">
           {goals
@@ -85,16 +93,13 @@ const Page = () => {
               <ListItem key={goal.id} {...goal} />
             ))}
           {tasks
-            ?.filter((task) => {
-              console.log(getDashDate(task.date));
-
-              return (
+            ?.filter(
+              (task) =>
                 task.status !== 'done' &&
                 task.status !== 'dismissed' &&
                 task.isPinned &&
                 (!task.date || getDashDate(task.date) !== getDashDate(today))
-              );
-            })
+            )
             ?.map((task) => (
               <ListItem key={task.id} {...task} />
             ))}
