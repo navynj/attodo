@@ -67,11 +67,6 @@ const Page = () => {
           </div>
         ) : (
           <>
-            {notes
-              ?.filter((note) => getDashDate(note.date) === getDashDate(today))
-              ?.map((note) => (
-                <ListItem key={note.id} {...note} />
-              ))}
             {events
               ?.filter((event) => getDashDate(event.date) === getDashDate(today))
               ?.map((event) => (
@@ -91,6 +86,11 @@ const Page = () => {
               ?.map((task) => (
                 <ListItem key={task.id} {...task} />
               ))}
+            {notes
+              ?.filter((note) => getDashDate(note.date) === getDashDate(today))
+              ?.map((note) => (
+                <ListItem key={note.id} {...note} />
+              ))}
           </>
         )}
       </ul>
@@ -100,8 +100,7 @@ const Page = () => {
         items={
           tasks?.filter(
             (task) =>
-              (task.status === 'done' ||
-              task.status === 'dismissed') &&
+              (task.status === 'done' || task.status === 'dismissed') &&
               task.date &&
               getDashDate(task.date) === getDashDate(today)
           ) || []

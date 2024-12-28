@@ -1,6 +1,8 @@
 import Nav from '@/components/layout/Nav';
 import React, { Suspense } from 'react';
 import MainInputOverlay from '../_components/MainInputOverlay';
+import TaskDateInputOverlay from '../_components/TaskDateInputOverlay';
+import DeleteConfirmOverlay from '../_components/DeleteConfirmOverlay';
 
 export default function ScreenLayout({
   children,
@@ -14,6 +16,8 @@ export default function ScreenLayout({
       {/* overlay */}
       <Suspense>
         <MainInputOverlay />
+        <TaskDateInputOverlay />
+        <DeleteConfirmOverlay />
       </Suspense>
     </div>
   );

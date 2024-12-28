@@ -12,6 +12,7 @@ import { mainFormDataAtom, todayAtom } from '@/store/ui';
 import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtom, useAtomValue } from 'jotai';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { FieldPath, FieldValues, Path, useForm, UseFormReturn } from 'react-hook-form';
@@ -204,6 +205,7 @@ const MainInputOverlay = () => {
         type,
         title,
         status: ['project', 'goal', 'task'].includes(type) ? 'todo' : undefined,
+        date: ['task', 'event'].includes(type) ? today.toISOString() : undefined,
       });
     }
   }, [form.watch('type')]);
@@ -334,7 +336,7 @@ const MainInputOverlay = () => {
         ))}
       </div>
       {['project', 'goal', 'task'].includes(form.watch('type')) && (
-        <div className="flex justify-center gap-1 bg-gray-100 rounded-md items-center p-[0.2rem] my-4 font-extrabold text-xs">
+        <div className="flex justify-center gap-1 bg-gray-100 rounded-md items-center p-[0.2rem] font-extrabold text-xs">
           <button
             type="button"
             className={`w-full py-[0.375rem] flex justify-center items-center gap-2 rounded-md ${
@@ -372,21 +374,23 @@ const MainInputOverlay = () => {
           </button>
         </div>
       )}
-      {defaultValues && !form.formState.isSubmitting && form.watch('type') === 'task' && (
-        <div className="flex justify-between items-center gap-1 [&>button]:w-full [&>button]:py-2 py-2 font-extrabold text-xs text-gray-400">
-          <button
+      {defaultValues && !form.formState.isSubmitting && (
+        <div className="flex justify-between items-center gap-1 mt-4 [&>*]:w-full [&>*]:py-2 font-extrabold text-xs text-gray-400">
+          <Link
+            href={`${pathname}?${params.toString()}&delete-confirm=show`}
             type="button"
             className="flex justify-center items-center gap-2"
-            onClick={deleteHandler.bind(null, defaultValues)}
           >
             <FaTrash /> <span>Delete</span>
-          </button>
-          <button type="button" className="flex justify-center items-center gap-2">
-            <FaCopy /> <span>Duplicate</span>
-          </button>
-          <button type="button" className="flex justify-center items-center gap-2">
-            <FaArrowRight /> <span>Move</span>
-          </button>
+          </Link>
+          {form.watch('type') === 'task' && (
+            <Link
+              href={`${pathname}?${params.toString()}&task-date-input=show&mode=duplicate`}
+              className="flex justify-center items-center gap-2"
+            >
+              <FaCopy /> <span>Duplicate</span>
+            </Link>
+          )}
         </div>
       )}
     </OverlayForm>
@@ -410,7 +414,9 @@ const ProjectFields = ({ form }: FieldProps<mainFormSchemaType>) => {
         }}
       >
         <FaCalendar className="text-sm" />
-        {form.watch('startDate') || <span className="text-gray-300">No start date</span>}
+        {getDateStr(form.watch('startDate')) || (
+          <span className="text-gray-300">No start date</span>
+        )}
         <input
           className="opacity-0 absolute w-full"
           type="datetime-local"
@@ -428,7 +434,9 @@ const ProjectFields = ({ form }: FieldProps<mainFormSchemaType>) => {
         }}
       >
         <FaCalendar className="text-sm" />
-        {form.watch('dueDate') || <span className="text-gray-300">No due date</span>}
+        {getDateStr(form.watch('dueDate')) || (
+          <span className="text-gray-300">No due date</span>
+        )}
         <input
           className="opacity-0 absolute w-full"
           type="datetime-local"
@@ -453,7 +461,9 @@ const GoalFields = ({ form }: FieldProps<mainFormSchemaType>) => {
       }}
     >
       <FaCalendar className="text-sm" />
-      {form.watch('dueDate') || <span className="text-gray-300">No due date</span>}
+      {getDateStr(form.watch('dueDate')) || (
+        <span className="text-gray-300">No due date</span>
+      )}
       <input
         className="opacity-0 absolute w-full"
         type="datetime-local"

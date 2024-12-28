@@ -5,10 +5,14 @@ import { tasksAtom } from '@/store/task';
 import { useAtomValue } from 'jotai';
 import ListItem from '../../_components/ListItem';
 import Loader from '@/components/loader/Loader';
+import { eventsAtom } from '@/store/event';
+import { notesAtom } from '@/store/note';
 
 const Page = () => {
   const { data: tasks, isFetching: isFetchingTasks } = useAtomValue(tasksAtom);
   const { data: goals, isFetching: isFetchingGoals } = useAtomValue(goalsAtom);
+  const { data: events, isFetching: isFetchingEvents } = useAtomValue(eventsAtom);
+  const { data: notes, isFetching: isFetchingNotes } = useAtomValue(notesAtom);
 
   return (
     <div className="h-full p-8 space-y-8">
@@ -30,6 +34,16 @@ const Page = () => {
               ?.filter((task) => !task.date && !task.isPinned)
               ?.map((task) => (
                 <ListItem key={task.id} {...task} />
+              ))}
+            {events
+              ?.filter((event) => !event.date && !event.isPinned)
+              ?.map((event) => (
+                <ListItem key={event.id} {...event} />
+              ))}
+            {notes
+              ?.filter((note) => !note.date && !note.isPinned)
+              ?.map((note) => (
+                <ListItem key={note.id} {...note} />
               ))}
           </>
         )}
