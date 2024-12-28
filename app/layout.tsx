@@ -29,7 +29,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body>
-        <JotaiProvider>{children}</JotaiProvider>
+        <JotaiProvider>
+          {children}
+          <div id="overlay-container"></div>
+        </JotaiProvider>
       </body>
     </html>
   );

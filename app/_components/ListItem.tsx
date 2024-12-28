@@ -45,24 +45,24 @@ const TaskIcon = ({ id, status: statusProps }: Pick<TaskType, 'id' | 'status'>) 
   const { refetch } = useAtomValue(tasksAtom);
   const [status, setStatus] = useState(statusProps);
 
-  const updateStatus = async(statusStr: TaskStatusType) => {
+  const updateStatus = async (statusStr: TaskStatusType) => {
     setStatus(statusStr);
 
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/task/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: statusStr }),
-    });
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/task/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: statusStr }),
+      });
 
-    if (!response.ok) {
-      throw new Error(response.status + ' ' + response.statusText);
+      if (!response.ok) {
+        throw new Error(response.status + ' ' + response.statusText);
+      }
+
+      refetch();
+    } catch (error) {
+      console.error(error);
     }
-
-    refetch();
-  } catch (error) {
-    console.error(error);
-  }
-  }
+  };
 
   return (
     <>
