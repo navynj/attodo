@@ -27,12 +27,33 @@ const Page = () => {
   const { data: goals, isFetching: isFetchingGoals } = useAtomValue(goalsAtom);
 
   return (
-    <div className="h-full p-14 space-y-10">
+    <div className="h-full p-14 flex flex-col gap-10">
       {/* Header */}
       <div className="mt-4 flex justify-between">
         <YearMonthNav />
         <DayNav />
       </div>
+      {!!tasks?.filter(
+        (task) =>
+          task.status === 'todo' &&
+          task.date &&
+          dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
+      ).length && (
+        <List
+          className="box-content w-full ml-[-1.5rem] [&_li]:text-base [&_svg]:text-xs py-3 px-6 bg-red-50 rounded-xl [&_h5]:text-red-400 [&_svg]:text-red-200 [&>div>svg]:text-red-400"
+          title="Overdue Tasks"
+          items={
+            tasks?.filter(
+              (task) =>
+                task.status === 'todo' &&
+                task.date &&
+                dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
+            ) || []
+          }
+          gap={2}
+          isFolded={true}
+        ></List>
+      )}
       <ul
         className={`${
           isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals
@@ -75,14 +96,17 @@ const Page = () => {
       </ul>
       <List
         title="Completed Tasks"
-        className="mt-6 [&>div]:mb-6 [&_li]:text-base [&_svg]:text-xs"
+        className="mt-2 [&_li]:text-base [&_svg]:text-xs"
         items={
           tasks?.filter(
             (task) =>
-              task.status === 'done' &&
-              (task.date && getDashDate(task.date) === getDashDate(today))
+              (task.status === 'done' ||
+              task.status === 'dismissed') &&
+              task.date &&
+              getDashDate(task.date) === getDashDate(today)
           ) || []
         }
+        gap={6}
         isFolded={true}
       />
       {!!(
@@ -126,7 +150,7 @@ const Page = () => {
                 event.isPinned &&
                 event.date &&
                 getDashDate(event.date) &&
-                new Date(getDashDate(event.date)!) >= new Date(getDashDate(new Date())!)
+                dayjs(getDashDate(event.date)!) >= dayjs(getDashDate(new Date())!)
             )
             ?.map((event) => (
               <ListItem key={event.id} {...event} />
