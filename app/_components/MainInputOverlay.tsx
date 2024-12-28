@@ -13,9 +13,17 @@ import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtom, useAtomValue } from 'jotai';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { FieldPath, FieldValues, Path, useForm, UseFormReturn } from 'react-hook-form';
-import { FaArrowRight, FaCalendar, FaTrash, FaXmark } from 'react-icons/fa6';
+import { FaCheckSquare } from 'react-icons/fa';
+import {
+  FaArrowRight,
+  FaCalendar,
+  FaCheck,
+  FaCopy,
+  FaTrash,
+  FaXmark,
+} from 'react-icons/fa6';
 import { TiPin } from 'react-icons/ti';
 import * as z from 'zod';
 
@@ -30,6 +38,7 @@ const formSchema = z.object({
   isPinned: z.boolean().optional().nullable(),
   projectId: z.string().optional().nullable(),
   goalId: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
 });
 
 export type mainFormSchemaType = z.infer<typeof formSchema>;
@@ -191,7 +200,11 @@ const MainInputOverlay = () => {
     const type = form.getValues().type;
 
     if (!defaultValues) {
-      form.reset({ type, title });
+      form.reset({
+        type,
+        title,
+        status: ['project', 'goal', 'task'].includes(type) ? 'todo' : undefined,
+      });
     }
   }, [form.watch('type')]);
 
@@ -211,6 +224,10 @@ const MainInputOverlay = () => {
       form.setValue('isPinned', false);
     }
   }, [form.watch('date')]);
+
+  const updateStatus = (status: string) => {
+    form.setValue('status', status);
+  };
 
   return (
     <OverlayForm<mainFormSchemaType>
@@ -316,8 +333,47 @@ const MainInputOverlay = () => {
           </div>
         ))}
       </div>
-      {defaultValues && !form.formState.isSubmitting && (
-        <div className="flex justify-center items-center [&>button]:w-full py-2 mt-4 font-extrabold text-xs text-gray-400">
+      {['project', 'goal', 'task'].includes(form.watch('type')) && (
+        <div className="flex justify-center gap-1 bg-gray-100 rounded-md items-center p-[0.2rem] my-4 font-extrabold text-xs">
+          <button
+            type="button"
+            className={`w-full py-[0.375rem] flex justify-center items-center gap-2 rounded-md ${
+              form.watch('status') === 'todo' ? 'text-primary bg-white' : 'text-gray-400'
+            }`}
+            disabled={form.watch('status') === 'todo'}
+            onClick={updateStatus.bind(null, 'todo')}
+          >
+            <FaCheckSquare />
+            <span>Todo</span>
+          </button>
+          <button
+            type="button"
+            className={`w-full py-[0.375rem] flex justify-center items-center gap-2 rounded-md ${
+              form.watch('status') === 'dismissed'
+                ? 'text-primary bg-white'
+                : 'text-gray-400'
+            }`}
+            disabled={form.watch('status') === 'dismissed'}
+            onClick={updateStatus.bind(null, 'dismissed')}
+          >
+            <FaXmark />
+            <span>Dismiss</span>
+          </button>
+          <button
+            type="button"
+            className={`w-full py-[0.375rem] flex justify-center items-center gap-2 rounded-md ${
+              form.watch('status') === 'done' ? 'text-primary bg-white' : 'text-gray-400'
+            }`}
+            disabled={form.watch('status') === 'done'}
+            onClick={updateStatus.bind(null, 'done')}
+          >
+            <FaCheck />
+            <span>Done</span>
+          </button>
+        </div>
+      )}
+      {defaultValues && !form.formState.isSubmitting && form.watch('type') === 'task' && (
+        <div className="flex justify-between items-center gap-1 [&>button]:w-full [&>button]:py-2 py-2 font-extrabold text-xs text-gray-400">
           <button
             type="button"
             className="flex justify-center items-center gap-2"
@@ -326,10 +382,10 @@ const MainInputOverlay = () => {
             <FaTrash /> <span>Delete</span>
           </button>
           <button type="button" className="flex justify-center items-center gap-2">
-            <FaXmark /> <span>Dismiss</span>
+            <FaCopy /> <span>Duplicate</span>
           </button>
           <button type="button" className="flex justify-center items-center gap-2">
-            <FaArrowRight /> <span>Delay</span>
+            <FaArrowRight /> <span>Move</span>
           </button>
         </div>
       )}

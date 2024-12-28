@@ -1,16 +1,16 @@
+import Button from '@/components/button/Button';
+import { EventType } from '@/store/event';
 import { GoalType } from '@/store/goals';
 import { NoteType } from '@/store/note';
-import { tasksAtom, TaskType } from '@/store/task';
-import { EventType } from '@/store/event';
-import Link from 'next/link';
-import React from 'react';
-import { BsDash, BsDot } from 'react-icons/bs';
-import { FaArrowRight, FaSquare, FaX, FaXmark } from 'react-icons/fa6';
-import Button from '@/components/button/Button';
+import { tasksAtom, TaskStatusType, TaskType } from '@/store/task';
 import { mainFormDataAtom } from '@/store/ui';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { redirect, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { BsDash, BsDot } from 'react-icons/bs';
 import { FaCheckSquare } from 'react-icons/fa';
+import { FaArrowRight, FaSquare, FaXmark } from 'react-icons/fa6';
 
 const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
   const setFormData = useSetAtom(mainFormDataAtom);
@@ -41,25 +41,28 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
   );
 };
 
-const TaskIcon = ({ id, status }: Partial<TaskType>) => {
+const TaskIcon = ({ id, status: statusProps }: Pick<TaskType, 'id' | 'status'>) => {
   const { refetch } = useAtomValue(tasksAtom);
-  
-  const updateStatus = async (status: string) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/task/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-      });
+  const [status, setStatus] = useState(statusProps);
 
-      if (!response.ok) {
-        throw new Error(response.status + ' ' + response.statusText);
-      }
+  const updateStatus = async(statusStr: TaskStatusType) => {
+    setStatus(statusStr);
 
-      refetch();
-    } catch (error) {
-      console.error(error);
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/task/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: statusStr }),
+    });
+
+    if (!response.ok) {
+      throw new Error(response.status + ' ' + response.statusText);
     }
-  };
+
+    refetch();
+  } catch (error) {
+    console.error(error);
+  }
+  }
 
   return (
     <>
@@ -76,7 +79,7 @@ const TaskIcon = ({ id, status }: Partial<TaskType>) => {
         />
       )}
       {status === 'delayed' && <FaArrowRight className="text-gray-300" />}
-      {status === 'dismissed' && <FaXmark className="text-gray-300" />}
+      {status === 'dismissed' && <FaXmark />}
     </>
   );
 };

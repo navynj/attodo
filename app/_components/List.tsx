@@ -11,22 +11,23 @@ import { GoalType } from '@/store/goals';
 interface ListProps extends ClassNameProps {
   title?: string;
   items: (GoalType | NoteType | TaskType | EventType)[];
+  gap?: number;
   isFolded?: boolean;
 }
 
-const List = ({ title, items, isFolded, className }: ListProps) => {
+const List = ({ title, items, isFolded, gap, className }: ListProps) => {
   const [hide, setHide] = useState(isFolded);
 
   return (
     <ul className={className}>
       {!!title && !!items?.length && (
         <div
-          className="flex gap-2 items-center mb-3 cursor-pointer"
+          className={`flex gap-2 items-center  ${hide ? '' : gap ? 'mb-' + gap : 'mb-4'} cursor-pointer`}
           onClick={() => {
             setHide((prev) => !prev);
           }}
         >
-          {isFolded &&
+          {isFolded !== undefined &&
             (hide ? (
               <FaChevronRight className="text-[0.675rem]" />
             ) : (
@@ -35,7 +36,7 @@ const List = ({ title, items, isFolded, className }: ListProps) => {
           <h5 className="font-extrabold text-sm">{title}</h5>
         </div>
       )}
-      <li className={`space-y-6 text-lg font-light ${isFolded ? 'ml-4' : ''}`}>
+      <li className={`space-y-6 text-lg font-light ${isFolded !== undefined ? 'ml-4' : ''}`}>
         {!hide && items?.map((item) => <ListItem key={item.id} {...item} />)}
       </li>
     </ul>
