@@ -10,7 +10,7 @@ export default function ScreenLayout({
   return (
     <div className="relative max-w-[1280px] mx-auto">
       {/* content */}
-      <main className="w-full h-[calc(100dvh-6rem)] overflow-scroll">{children}</main>
+      <main className="w-full h-[calc(100dvh-6rem)] overflow-scroll max-md:scrollbar-hide">{children}</main>
       {/* nav */}
       <Nav className="h-[6rem]" />
       {/* overlay */}
