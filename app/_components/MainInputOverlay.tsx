@@ -66,22 +66,23 @@ const MainInputOverlay = () => {
     defaultValues: defaultValues,
   });
 
-  const submitHandler = async (inputValues: mainFormSchemaType, e?: Event) => {
+  const submitHandler = async (values: mainFormSchemaType, e?: Event) => {
     e?.preventDefault();
 
-    const values = {
-      ...inputValues,
-      date: inputValues.date ? new Date(inputValues.date) : undefined,
-      dueDate: inputValues.dueDate ? new Date(inputValues.dueDate) : undefined,
-      startDate: inputValues.startDate ? new Date(inputValues.startDate) : undefined,
-    };
     const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/${values.type}`;
+    const body = JSON.stringify({
+      ...values,
+      date: values.date ? new Date(values.date) : undefined,
+      dueDate: values.dueDate ? new Date(values.dueDate) : undefined,
+      startDate: values.startDate ? new Date(values.startDate) : undefined,
+      status: values.type === 'event' || values.type === 'note' ? undefined : 'todo',
+    });
 
     try {
       if (defaultValues) {
         const response = await fetch(`${url}/${defaultValues.id}`, {
           method: 'PATCH',
-          body: JSON.stringify(values),
+          body,
         });
         if (!response.ok) {
           throw new Error(response.status + ' ' + response.statusText);
@@ -90,11 +91,7 @@ const MainInputOverlay = () => {
       } else {
         const response = await fetch(url, {
           method: 'POST',
-          body: JSON.stringify({
-            ...values,
-            status:
-              values.type !== 'event' && values.type !== 'note' ? 'todo' : undefined,
-          }),
+          body,
         });
         if (!response.ok) {
           throw new Error(response.status + ' ' + response.statusText);
