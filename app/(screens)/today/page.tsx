@@ -56,6 +56,9 @@ const Page = () => {
   }, [today, tasks, events, notes, goals]);
 
   const doneArr = useMemo(() => {
+
+
+    console.log('done updated');
     return (
       tasks?.filter(
         (task) =>
@@ -64,13 +67,14 @@ const Page = () => {
           getDashDate(task.date) === getDashDate(today)
       ) || []
     );
-  }, [today, tasks, events, notes, goals]);
+
+  }, [today, tasks]);
 
   const pinnedArr = useMemo(() => {
-    const goalArr =
-      goals?.filter(
-        (goal) => goal.isPinned && goal.status !== 'done' && goal.status !== 'dismissed'
-      ) || [];
+    // const goalArr =
+    //   goals?.filter(
+    //     (goal) => goal.isPinned && goal.status !== 'done' && goal.status !== 'dismissed'
+    //   ) || [];
     const taskArr =
       tasks?.filter(
         (task) =>
@@ -91,7 +95,7 @@ const Page = () => {
 
     const noteArr = notes?.filter((goal) => goal.isPinned) || [];
 
-    return [...goalArr, ...taskArr, ...eventArr, ...noteArr];
+    return [...taskArr, ...eventArr, ...noteArr];
   }, [today, tasks, events, notes, goals]);
 
   return (
@@ -103,7 +107,7 @@ const Page = () => {
       </div>
       {!!overdueArr.length && (
         <List
-          className="box-content w-full ml-[-1.5rem] [&_li]:text-base [&_svg]:text-xs py-3 px-6 bg-red-50 rounded-xl [&_h5]:text-red-400 [&_svg]:text-red-200 [&>div>svg]:text-red-400"
+          className="box-content w-full ml-[-1.5rem] [&_li]:text-base [&_svg]:text-xs py-3 px-6 bg-red-50 rounded-xl text-red-400 [&_svg]:text-red-200 [&>div>svg]:text-red-400"
           title="Overdue Tasks"
           items={overdueArr}
           gap={2}

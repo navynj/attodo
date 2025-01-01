@@ -4,13 +4,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export const GET = async (req: NextRequest, { params }: { params: { id: string } }) => {
   const id = params.id;
 
-  const post = await prisma.task.findUnique({
+  const task = await prisma.task.findUnique({
     where: {
       id,
     },
   });
 
-  return NextResponse.json({ post });
+  return NextResponse.json({ task });
 };
 
 export async function PATCH(
@@ -19,22 +19,27 @@ export async function PATCH(
 ) {
   const data = await req.json();
 
-  await prisma.task.update({
+  const res = await prisma.task.update({
     where: {
       id: id,
     },
     data,
+    include: {
+      goal: true,
+    }
   });
-  return NextResponse.json({ message: 'task updated: ' + id }, { status: 200 });
+
+  return NextResponse.json(res, { status: 200 });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id;
 
-  await prisma.task.delete({
+  const res = await prisma.task.delete({
     where: {
       id: id,
     },
   });
-  return NextResponse.json({ message: 'task Deleted: ' + id }, { status: 200 });
+  
+  return NextResponse.json(res, { status: 200 });
 }

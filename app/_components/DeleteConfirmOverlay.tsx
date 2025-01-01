@@ -40,7 +40,6 @@ const TaskDateInputOverlay = () => {
       });
 
       router.back();
-      router.back();
 
       if (!response.ok) {
         throw new Error(response.status + ' ' + response.statusText);

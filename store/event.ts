@@ -1,6 +1,9 @@
 import { getDashDate } from '@/util/date';
-import { atomWithQuery } from 'jotai-tanstack-query';
+import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { todayAtom } from './ui';
+import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { convertMainFormData } from '@/util/convert';
+import { queryClient } from '@/lib/query';
 
 export interface EventType {
   type: 'event';
@@ -12,8 +15,6 @@ export interface EventType {
   isPinned?: boolean;
 }
 
-export type TaskTypeType = 'goal' | 'project' | 'recurring';
-
 export const eventsAtom = atomWithQuery<EventType[]>((get) => {
   return {
     queryKey: ['events'],
@@ -24,6 +25,30 @@ export const eventsAtom = atomWithQuery<EventType[]>((get) => {
   };
 });
 
-const convertScheduleData = (schedules: EventType[]) => {
-  return schedules;
-};
+export const eventMutation = atomWithMutation<EventType, Partial<mainFormSchemaType>>(
+  () => ({
+    mutationKey: ['events'],
+    mutationFn: async (event) => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/api/event${
+            event.id ? '/' + event.id : ''
+          }`,
+          {
+            method: event.id ? 'PATCH' : 'POST',
+            body: JSON.stringify(convertMainFormData(event)),
+          }
+        );
+        return await res.json();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['events'], (prev: EventType[]) => [
+        ...prev.filter((event) => event.id !== data.id),
+        data,
+      ]);
+    },
+  })
+);
