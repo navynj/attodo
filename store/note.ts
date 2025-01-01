@@ -1,6 +1,7 @@
-import { getDashDate } from '@/util/date';
-import { atomWithQuery } from 'jotai-tanstack-query';
-import { todayAtom } from './ui';
+import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { queryClient } from '@/lib/query';
+import { convertMainFormData } from '@/util/convert';
+import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 
 export interface NoteType {
   type: 'note';
@@ -23,6 +24,30 @@ export const notesAtom = atomWithQuery<NoteType[]>((get) => {
   };
 });
 
-const convertScheduleData = (schedules: NoteType[]) => {
-  return schedules;
-};
+
+export const noteMutation = atomWithMutation<NoteType, Partial<mainFormSchemaType>>(
+  () => ({
+    mutationKey: ['notes'],
+    mutationFn: async (note) => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/api/note${note.id ? '/' + note.id : ''}`,
+          {
+            method: note.id ? 'PATCH' : 'POST',
+            body: JSON.stringify(convertMainFormData(note)),
+          }
+        );
+        return await res.json();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['notes'], (prev: NoteType[]) => [
+        ...prev.filter((note) => note.id !== data.id),
+        data,
+      ]);
+    },
+  })
+);
+

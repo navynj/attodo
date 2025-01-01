@@ -4,26 +4,26 @@ import Button from '@/components/button/Button';
 import Loader from '@/components/loader/Loader';
 import OverlayForm from '@/components/overlay/OverlayForm';
 import Tab from '@/components/tab/Tab';
-import { eventsAtom } from '@/store/event';
-import { goalsAtom } from '@/store/goals';
-import { notesAtom } from '@/store/note';
-import { tasksAtom } from '@/store/task';
+import { eventMutation } from '@/store/event';
+import { goalMutation, goalsAtom, GoalType } from '@/store/goals';
+import { noteMutation } from '@/store/note';
+import { taskMutation } from '@/store/task';
 import { mainFormDataAtom, todayAtom } from '@/store/ui';
 import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtom, useAtomValue } from 'jotai';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { FieldPath, FieldValues, Path, useForm, UseFormReturn } from 'react-hook-form';
 import { FaCheckSquare } from 'react-icons/fa';
 import {
-  FaArrowRight,
   FaCalendar,
   FaCheck,
   FaCopy,
+  FaFlag,
   FaTrash,
-  FaXmark,
+  FaXmark
 } from 'react-icons/fa6';
 import { TiPin } from 'react-icons/ti';
 import * as z from 'zod';
@@ -44,7 +44,7 @@ const formSchema = z.object({
 
 export type mainFormSchemaType = z.infer<typeof formSchema>;
 
-const MainInputOverlay = () => {
+const MainFormOverlay = () => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -53,13 +53,18 @@ const MainInputOverlay = () => {
   const typeParam = params.get('type') || '';
   const goalIdParam = params.get('goalId') || '';
 
-  const { refetch: refetchProjects } = useAtomValue(tasksAtom);
-  const { refetch: refetchGoals } = useAtomValue(goalsAtom);
-  const { refetch: refetchTasks } = useAtomValue(tasksAtom);
-  const { refetch: refetchEvents } = useAtomValue(eventsAtom);
-  const { refetch: refetchNotes } = useAtomValue(notesAtom);
+  const { data: goals } = useAtomValue(goalsAtom);
+  const { mutate: goalMutate, isPending: isGoalPending } = useAtomValue(goalMutation);
+  const { mutate: taskMutate, isPending: isTaskPending } = useAtomValue(taskMutation);
+  const { mutate: eventMutate, isPending: isEventPending } = useAtomValue(eventMutation);
+  const { mutate: noteMutate, isPending: isNotePending } = useAtomValue(noteMutation);
   const [defaultValues, setDefaultValues] = useAtom(mainFormDataAtom);
   const today = useAtomValue(todayAtom);
+
+  const isPending = useMemo(
+    () => isGoalPending || isTaskPending || isEventPending || isNotePending,
+    [isGoalPending, isTaskPending, isEventPending, isNotePending]
+  );
 
   const form = useForm<mainFormSchemaType>({
     resolver: zodResolver(formSchema),
@@ -69,83 +74,26 @@ const MainInputOverlay = () => {
   const submitHandler = async (values: mainFormSchemaType, e?: Event) => {
     e?.preventDefault();
 
-    const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/${values.type}`;
-    const body = JSON.stringify({
-      ...values,
-      date: values.date ? new Date(values.date) : undefined,
-      dueDate: values.dueDate ? new Date(values.dueDate) : undefined,
-      startDate: values.startDate ? new Date(values.startDate) : undefined,
-      status: values.type === 'event' || values.type === 'note' ? undefined : 'todo',
-    });
-
     try {
-      if (defaultValues) {
-        const response = await fetch(`${url}/${defaultValues.id}`, {
-          method: 'PATCH',
-          body,
-        });
-        if (!response.ok) {
-          throw new Error(response.status + ' ' + response.statusText);
-        }
-        router.back();
-      } else {
-        const response = await fetch(url, {
-          method: 'POST',
-          body,
-        });
-        if (!response.ok) {
-          throw new Error(response.status + ' ' + response.statusText);
-        }
+      switch (values.type) {
+        case 'goal':
+          goalMutate(values);
+          break;
+        case 'task':
+          taskMutate(values);
+          break;
+        case 'event':
+          eventMutate(values);
+          break;
+        case 'note':
+          noteMutate(values);
+          break;
+        default:
+          console.error('Not valid type');
+          break;
       }
     } catch (error) {
       console.error(error);
-    }
-
-    form.reset();
-    initTypeByPathname();
-
-    setDefaultValues(undefined);
-    refetch(values.type);
-  };
-
-  const deleteHandler = async ({ id, type }: mainFormSchemaType) => {
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/${type}/${id}`, {
-        method: 'DELETE',
-      });
-
-      router.back();
-      form.reset();
-      setDefaultValues(undefined);
-      refetch(type);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const refetch = (type: string) => {
-    switch (type) {
-      case 'project':
-        refetchProjects();
-        break;
-      case 'goal':
-        refetchGoals();
-        break;
-      case 'task':
-        refetchTasks();
-        break;
-      case 'event':
-        refetchEvents();
-        break;
-      case 'note':
-        refetchNotes();
-        break;
-      default:
-        refetchProjects();
-        refetchGoals();
-        refetchTasks();
-        refetchEvents();
-        refetchNotes();
     }
   };
 
@@ -172,27 +120,41 @@ const MainInputOverlay = () => {
     }
   }, [isOpen]);
 
-  // NOTE: Init default values (In case of update)
+  // NOTE: Init when create/update completed
+  useEffect(() => {
+    if (!isPending) {
+      if (defaultValues) {
+        router.back();
+      }
+
+      form.reset();
+      initTypeByPathname();
+      setDefaultValues(undefined);
+    }
+  }, [isPending]);
+
+  // NOTE: Init default values when update form is open
   useEffect(() => {
     if (defaultValues) {
       for (const keyStr in defaultValues) {
         const key = keyStr as Path<mainFormSchemaType>;
         form.setValue(key, defaultValues[key]);
-
-        if (goalIdParam) {
-          form.setValue('goalId', goalIdParam);
-        }
       }
     } else {
       form.reset();
     }
+
+    if (goalIdParam) {
+      form.setValue('goalId', goalIdParam);
+    }
   }, [defaultValues, goalIdParam]);
 
-  // NOTE: Init type
+  // NOTE: Init type by param
   useEffect(() => {
     form.setValue('type', typeParam);
   }, [typeParam]);
 
+  // NOTE: Init form when type changes
   useEffect(() => {
     const title = form.getValues().title;
     const type = form.getValues().type;
@@ -246,12 +208,12 @@ const MainInputOverlay = () => {
           className="text-sm"
           form={form}
           tabs={[
+            // {
+            //   label: 'Project',
+            //   value: 'project',
+            // },
             {
-              label: 'Project',
-              value: 'project',
-            },
-            {
-              label: 'Goal',
+              label: 'Goalss',
               value: 'goal',
             },
             {
@@ -298,10 +260,10 @@ const MainInputOverlay = () => {
           type="submit"
           className={`absolute top-[50%] transform translate-y-[-50%] right-[0.5rem] p-1 ${
             defaultValues ? 'w-[3.5rem]' : 'w-[3rem]'
-          } text-center text-xs ${form.formState.isSubmitting ? 'opacity-25' : ''}`}
-          disabled={form.formState.isSubmitting}
+          } text-center text-xs ${isPending ? 'opacity-25' : ''}`}
+          disabled={isPending}
         >
-          {form.formState.isSubmitting ? (
+          {isPending ? (
             <Loader isDark={true} className="w-4 h-4" />
           ) : defaultValues ? (
             'Update'
@@ -312,7 +274,7 @@ const MainInputOverlay = () => {
       </div>
       {form.watch('type') === 'project' && <ProjectFields form={form} />}
       {form.watch('type') === 'goal' && <GoalFields form={form} />}
-      {form.watch('type') === 'task' && <TaskFields form={form} />}
+      {form.watch('type') === 'task' && <TaskFields form={form} goals={goals} />}
       {form.watch('type') === 'event' && <EventFields form={form} />}
       {form.watch('type') === 'note' && <NoteFields form={form} />}
       <div className="space-y-2 my-2">
@@ -371,7 +333,7 @@ const MainInputOverlay = () => {
           </button>
         </div>
       )}
-      {defaultValues && !form.formState.isSubmitting && (
+      {defaultValues && !isPending && (
         <div className="flex justify-between items-center gap-1 mt-4 [&>*]:w-full [&>*]:py-2 font-extrabold text-xs text-gray-400">
           <Link
             href={`${pathname}?${params.toString()}&delete-confirm=show`}
@@ -395,8 +357,8 @@ const MainInputOverlay = () => {
 };
 
 // Fields
-interface FieldProps<formSchemaType extends FieldValues> {
-  form: UseFormReturn<formSchemaType, any, undefined>;
+interface FieldProps<T extends FieldValues> {
+  form: UseFormReturn<T, any, undefined>;
 }
 
 const ProjectFields = ({ form }: FieldProps<mainFormSchemaType>) => {
@@ -474,27 +436,52 @@ const GoalFields = ({ form }: FieldProps<mainFormSchemaType>) => {
   );
 };
 
-const TaskFields = ({ form }: FieldProps<mainFormSchemaType>) => {
+const TaskFields = ({
+  form,
+  goals,
+}: {
+  form: UseFormReturn<mainFormSchemaType, any, undefined>;
+  goals?: GoalType[];
+}) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
-    <div
-      className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer"
-      onClick={() => {
-        datePickerRef.current?.showPicker();
-      }}
-    >
-      <FaCalendar className="text-sm" />
-      {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
-      <input
-        className="opacity-0 absolute w-full"
-        type="datetime-local"
-        {...form.register('date')}
-        ref={(e) => {
-          form.register('date').ref(e);
-          datePickerRef.current = e;
+    <>
+      <div
+        className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer"
+        onClick={() => {
+          datePickerRef.current?.showPicker();
         }}
-      />
-    </div>
+      >
+        <FaCalendar className="text-sm" />
+        {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
+        <input
+          className="opacity-0 absolute w-full"
+          type="datetime-local"
+          {...form.register('date')}
+          ref={(e) => {
+            form.register('date').ref(e);
+            datePickerRef.current = e;
+          }}
+        />
+      </div>
+      <div className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer">
+        <FaFlag className="text-sm" />
+        <select
+          {...form.register('goalId')}
+          className={`w-full ${form.watch('goalId') ? '' : 'text-gray-300'}`}
+        >
+          <option value="">No goal</option>
+          {goals?.map(
+            (goal) =>
+              goal.status === 'todo' && (
+                <option key={goal.id} value={goal.id}>
+                  {goal.title}
+                </option>
+              )
+          )}
+        </select>
+      </div>
+    </>
   );
 };
 
@@ -546,4 +533,4 @@ const NoteFields = <T extends FieldValues>({ form }: FieldProps<mainFormSchemaTy
   );
 };
 
-export default MainInputOverlay;
+export default MainFormOverlay;

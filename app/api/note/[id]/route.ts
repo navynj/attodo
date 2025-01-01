@@ -19,22 +19,24 @@ export async function PATCH(
 ) {
   const data = await req.json();
 
-  await prisma.note.update({
+  const res = await prisma.note.update({
     where: {
       id: id,
     },
     data,
   });
-  return NextResponse.json({ message: 'note updated: ' + id }, { status: 200 });
+
+  return NextResponse.json(res, { status: 200 });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id;
 
-  await prisma.note.delete({
+  const res = await prisma.note.delete({
     where: {
       id: id,
     },
   });
-  return NextResponse.json({ message: 'note Deleted: ' + id }, { status: 200 });
+
+  return NextResponse.json(res, { status: 200 });
 }

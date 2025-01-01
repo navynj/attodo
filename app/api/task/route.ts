@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   try {
     const data = await prisma.task.findMany({
       where: { userId: session.user.id, date },
+      include: { goal: true },
       orderBy: [{ createdAt: 'asc' }],
     });
 
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
         ...reqData,
         userId: session.user.id,
       },
+      include: { goal: true }
     });
 
     return new Response(JSON.stringify(data), { status: 201 });
