@@ -33,38 +33,41 @@ const Page = () => {
         (task) =>
           task.status === 'todo' &&
           task.date &&
+          (!task.goalId || task.showOutside) &&
           dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
       ) || []
     );
-  }, [today, tasks]);
+  }, [tasks]);
+
+  const taskArr = useMemo(() => {
+    return (
+      tasks?.filter(
+        (task) =>
+          task.date &&
+          (!task.goalId || task.showOutside) &&
+          getDashDate(task.date) === getDashDate(today)
+      ) || []
+    );
+  } , [today, tasks]);
 
   const todoArr = useMemo(() => {
     const eventArr =
       events?.filter((event) => getDashDate(event.date) === getDashDate(today)) || [];
     const noteArr =
       notes?.filter((note) => getDashDate(note.date) === getDashDate(today)) || [];
-    const taskArr =
-      tasks?.filter(
-        (task) =>
-          task.status !== 'done' &&
-          task.status !== 'dismissed' &&
-          task.date &&
-          getDashDate(task.date) === getDashDate(today)
-      ) || [];
+    const todoTaskArr =
+      taskArr?.filter((task) => task.status === 'todo' ) || [];
 
-    return [...eventArr, ...taskArr, ...noteArr];
-  }, [today, tasks, events, notes, goals]);
+    return [...eventArr, ...todoTaskArr, ...noteArr];
+  }, [today, taskArr, events, notes]);
 
   const doneArr = useMemo(() => {
     return (
-      tasks?.filter(
-        (task) =>
-          (task.status === 'done' || task.status === 'dismissed') &&
-          task.date &&
-          getDashDate(task.date) === getDashDate(today)
+      taskArr?.filter(
+        (task) => (task.status !== 'todo')
       ) || []
     );
-  }, [today, tasks]);
+  }, [taskArr]);
 
   const pinnedArr = useMemo(() => {
     // const goalArr =

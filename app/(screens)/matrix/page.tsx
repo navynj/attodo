@@ -31,6 +31,10 @@ const Page = () => {
 
 
   const tasks = useMemo(() => taskData?.filter((task) => {
+    if (task.goalId && !task.showOutside) {
+      return false;
+    }
+
     switch(statusFilter) {
       case 'todo':
         return task.status === 'todo';
@@ -39,7 +43,7 @@ const Page = () => {
       case 'scheduled':
         return task.date && task.status === 'todo';
       case 'done':
-        return task.status === 'done';
+        return task.status !== 'todo';
     }
   }).filter((task) => {
     switch (dateFilter) {

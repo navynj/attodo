@@ -18,8 +18,8 @@ export default function ScreenLayout({
       {/* overlay */}
       <Suspense>
         <MainFormOverlay />
-        <TaskDateInputOverlay />
-        <DeleteConfirmOverlay />
+        <TaskDateInputOverlay z={1} />
+        <DeleteConfirmOverlay z={2} />
       </Suspense>
     </div>
   );

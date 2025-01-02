@@ -17,7 +17,7 @@ const formSchema = z.object({
 
 type dateSchemaType = z.infer<typeof formSchema>;
 
-const TaskDateInputOverlay = () => {
+const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
   const router = useRouter();
 
   const params = useSearchParams();
@@ -64,6 +64,7 @@ const TaskDateInputOverlay = () => {
       saveStr="Confirm"
       title={mode && mode.charAt(0).toUpperCase() + mode.slice(1) + ' To'}
       backdropZindex={100}
+      z={zIndex}
     >
       <div
         className="relative flex p-1 gap-3 items-center cursor-pointer"

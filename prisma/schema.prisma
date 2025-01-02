@@ -132,6 +132,7 @@ model Task {
   isUrgent    Boolean?
   size        Int?
   weight      Int?
+  showOutside Boolean?
 
   userId    String
   user      User     @relation(fields: [userId], references: [id])

@@ -9,7 +9,6 @@ import { goalMutation, goalsAtom, GoalType } from '@/store/goals';
 import { noteMutation } from '@/store/note';
 import { taskMutation } from '@/store/task';
 import { mainFormDataAtom, todayAtom } from '@/store/ui';
-import { convertMainFormData } from '@/util/convert';
 import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtom, useAtomValue } from 'jotai';
@@ -17,7 +16,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef } from 'react';
 import { FieldPath, FieldValues, Path, useForm, UseFormReturn } from 'react-hook-form';
-import { FaCheckSquare, FaSortNumericUp } from 'react-icons/fa';
+import { FaCheckSquare } from 'react-icons/fa';
 import {
   FaAnchor,
   FaCalendar,
@@ -42,11 +41,17 @@ const formSchema = z.object({
   isPinned: z.boolean().optional().nullable(),
   isUrgent: z.boolean().optional().nullable(),
   isImportant: z.boolean().optional().nullable(),
-  size: z.preprocess((val) => val || null, z.number().min(1).max(4).optional().nullable()),
-  weight: z.preprocess((val) => val || null, z.number().min(1).max(4).optional().nullable()),
-  projectId: z.string().optional().nullable(),
+  size: z.preprocess(
+    (val) => val || null,
+    z.number().min(1).max(4).optional().nullable()
+  ),
+  weight: z.preprocess(
+    (val) => val || null,
+    z.number().min(1).max(4).optional().nullable()
+  ),
   goalId: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
+  showOutside: z.boolean().optional().nullable(),
 });
 
 export type mainFormSchemaType = z.infer<typeof formSchema>;
@@ -54,6 +59,7 @@ export type mainFormSchemaType = z.infer<typeof formSchema>;
 const MainFormOverlay = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const isGoalPage = pathname.includes('goal');
 
   const params = useSearchParams();
   const isOpen = params.get('main-input');
@@ -106,7 +112,12 @@ const MainFormOverlay = () => {
 
   const initTypeByPathname = () => {
     if (!defaultValues) {
-      if (pathname === '/inbox') {
+      if (pathname.includes('goal')) {
+        form.setValue('type', 'task');
+
+        const pathnameArr = pathname.split('/');
+        form.setValue('goalId', pathnameArr[pathnameArr.length - 1]);
+      } else if (pathname === '/inbox') {
         form.setValue('type', 'goal');
       } else if (pathname !== '/inbox' && pathname !== '/project') {
         form.setValue('type', 'task');
@@ -193,6 +204,19 @@ const MainFormOverlay = () => {
     }
   }, [form.watch('date')]);
 
+  // NOTE: ShowOutside default value
+  useEffect(() => {
+    const goalId = form.watch('goalId');
+
+    if (!defaultValues && goalId) {
+      if (isGoalPage) {
+        form.setValue('showOutside', false);
+      } else {
+        form.setValue('showOutside', true);
+      }
+    }
+  }, [isGoalPage, form.watch('goalId'), defaultValues]);
+
   const updateStatus = (status: string) => {
     form.setValue('status', status);
   };
@@ -216,10 +240,6 @@ const MainFormOverlay = () => {
           className="text-sm"
           form={form}
           tabs={[
-            // {
-            //   label: 'Project',
-            //   value: 'project',
-            // },
             {
               label: 'Goals',
               value: 'goal',
@@ -246,7 +266,8 @@ const MainFormOverlay = () => {
               id="isPinned"
               type="checkbox"
               className="hidden"
-              {...form.register('isPinned', { disabled: isPending })}
+              {...form.register('isPinned')}
+              disabled={isPending}
             />
             <label
               htmlFor="isPinned"
@@ -262,7 +283,8 @@ const MainFormOverlay = () => {
             form.watch('type') && form.watch('type') !== 'project' ? 'pl-[2rem]' : ''
           } ${defaultValues ? 'pr-[4.5rem]' : 'pr-[4rem]'} text-lg rounded-md`}
           placeholder="Enter the title"
-          {...form.register('title', { disabled: isPending })}
+          {...form.register('title')}
+          disabled={isPending}
         />
         <Button
           type="submit"
@@ -282,7 +304,9 @@ const MainFormOverlay = () => {
       </div>
       {/* {form.watch('type') === 'project' && <ProjectFields form={form} />} */}
       {form.watch('type') === 'goal' && <GoalFields form={form} isPending={isPending} />}
-      {form.watch('type') === 'task' && <TaskFields form={form} goals={goals} isPending={isPending} />}
+      {form.watch('type') === 'task' && (
+        <TaskFields form={form} goals={goals} isPending={isPending} />
+      )}
       {form.watch('type') === 'event' && <EventFields form={form} />}
       {form.watch('type') === 'note' && <NoteFields form={form} />}
       <div className="space-y-2 my-2">
@@ -302,7 +326,7 @@ const MainFormOverlay = () => {
           </div>
         ))}
       </div>
-      {['project', 'goal', 'task'].includes(form.watch('type')) && (
+      {['goal', 'task'].includes(form.watch('type')) && (
         <div className="flex justify-center gap-1 bg-gray-100 rounded-md items-center p-[0.2rem] font-extrabold text-xs">
           <button
             type="button"
@@ -369,35 +393,20 @@ interface FieldProps<T extends FieldValues> {
   form: UseFormReturn<T, any, undefined>;
 }
 
-const ProjectFields = ({ form }: FieldProps<mainFormSchemaType>) => {
-  const startDatePickerRef = useRef<HTMLInputElement | null>(null);
-  const dueDatePickerRef = useRef<HTMLInputElement | null>(null);
+const GoalFields = ({
+  form,
+  isPending,
+}: {
+  form: UseFormReturn<mainFormSchemaType, any, undefined>;
+  isPending: boolean;
+}) => {
+  const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
     <>
       <div
-        className="relative flex p-1 gap-3 items-center cursor-pointer"
+        className="relative flex px-1 py-2 gap-3 items-center cursor-pointer"
         onClick={() => {
-          startDatePickerRef.current?.showPicker();
-        }}
-      >
-        <FaCalendar className="text-sm" />
-        {getDateStr(form.watch('startDate')) || (
-          <span className="text-gray-300">No start date</span>
-        )}
-        <input
-          className="opacity-0 absolute w-full"
-          type="datetime-local"
-          {...form.register('startDate')}
-          ref={(e) => {
-            form.register('startDate').ref(e);
-            startDatePickerRef.current = e;
-          }}
-        />
-      </div>
-      <div
-        className="relative flex p-1 gap-3 items-center cursor-pointer"
-        onClick={() => {
-          dueDatePickerRef.current?.showPicker();
+          datePickerRef.current?.showPicker();
         }}
       >
         <FaCalendar className="text-sm" />
@@ -410,44 +419,19 @@ const ProjectFields = ({ form }: FieldProps<mainFormSchemaType>) => {
           {...form.register('dueDate')}
           ref={(e) => {
             form.register('dueDate').ref(e);
-            dueDatePickerRef.current = e;
+            datePickerRef.current = e;
           }}
         />
       </div>
-    </>
-  );
-};
 
-const GoalFields = ({ form, isPending }: {
-  form: UseFormReturn<mainFormSchemaType, any, undefined>;
-  isPending: boolean;}) => {
-  const datePickerRef = useRef<HTMLInputElement | null>(null);
-  return (
-    <>
-    <div
-      className="relative flex px-1 py-2 gap-3 items-center cursor-pointer"
-      onClick={() => {
-        datePickerRef.current?.showPicker();
-      }}
-    >
-      <FaCalendar className="text-sm" />
-      {getDateStr(form.watch('dueDate')) || (
-        <span className="text-gray-300">No due date</span>
-      )}
-      <input
-        className="opacity-0 absolute w-full"
-        type="datetime-local"
-        {...form.register('dueDate')}
-        ref={(e) => {
-          form.register('dueDate').ref(e);
-          datePickerRef.current = e;
-        }}
-      />
-    </div>
-
-    <div className="flex gap-8 font-semibold items-center px-1 py-2">
-        <div className="shrink-0 flex gap-1">
-          <input id="task-urgency" type="checkbox" {...form.register('isUrgent', {disabled: isPending})} />
+      <div className="flex gap-8 font-semibold items-center px-1 py-2">
+        <div className="shrink-0 flex gap-1 items-center">
+          <input
+            id="task-urgency"
+            type="checkbox"
+            {...form.register('isUrgent')}
+            disabled={isPending}
+          />
           <label
             htmlFor="task-urgency"
             className={`w-full ${form.watch('isUrgent') ? '' : 'text-gray-300'}`}
@@ -455,8 +439,13 @@ const GoalFields = ({ form, isPending }: {
             Urgent
           </label>
         </div>
-        <div className="shrink-0 flex gap-1">
-          <input id="task-importance" type="checkbox" {...form.register('isImportant', {disabled: isPending})} />
+        <div className="shrink-0 flex gap-1 items-center">
+          <input
+            id="task-importance"
+            type="checkbox"
+            {...form.register('isImportant')}
+            disabled={isPending}
+          />
           <label
             htmlFor="task-importance"
             className={`w-full ${form.watch('isImportant') ? '' : 'text-gray-300'}`}
@@ -465,14 +454,15 @@ const GoalFields = ({ form, isPending }: {
           </label>
         </div>
       </div>
-    <div className="flex gap-8 px-1 py-2 ">
+      <div className="flex gap-8 px-1 py-2 ">
         <div className="flex gap-2 items-center">
           <FaHashtag className="text-sm" />
           <select
-            {...form.register('size', { valueAsNumber: true, disabled: isPending })}
+            {...form.register('size', { valueAsNumber: true })}
             className={`w-full ${form.watch('size') ? '' : 'text-gray-300'}`}
+            disabled={isPending}
           >
-            <option value='' defaultValue=''>
+            <option value="" defaultValue="">
               No Size
             </option>
             {Array.from(new Array(4)).map((_, i) => (
@@ -485,10 +475,11 @@ const GoalFields = ({ form, isPending }: {
         <div className="flex gap-2 items-center">
           <FaAnchor />
           <select
-            {...form.register('weight', { valueAsNumber: true, disabled: isPending })}
+            {...form.register('weight', { valueAsNumber: true })}
             className={`w-full ${form.watch('weight') ? '' : 'text-gray-300'}`}
+            disabled={isPending}
           >
-            <option value='' defaultValue=''>
+            <option value="" defaultValue="">
               No Weight
             </option>
             {Array.from(new Array(4)).map((_, i) => (
@@ -526,18 +517,20 @@ const TaskFields = ({
         <input
           className="opacity-0 absolute w-full"
           type="datetime-local"
-          {...form.register('date', {disabled: isPending})}
+          {...form.register('date')}
           ref={(e) => {
             form.register('date').ref(e);
             datePickerRef.current = e;
           }}
+          disabled={isPending}
         />
       </div>
       <div className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer">
         <FaFlag className="text-sm" />
         <select
-          {...form.register('goalId', {disabled: isPending})}
+          {...form.register('goalId')}
           className={`w-full ${form.watch('goalId') ? '' : 'text-gray-300'}`}
+          disabled={isPending}
         >
           <option value="">No goal</option>
           {goals?.map(
@@ -549,10 +542,29 @@ const TaskFields = ({
               )
           )}
         </select>
+        <div className="shrink-0 flex gap-1 items-center">
+          <input
+            id="task-show-outside"
+            type="checkbox"
+            {...form.register('showOutside')}
+          disabled={isPending}
+          />
+          <label
+            htmlFor="task-show-outside"
+            className={`w-full text-xs ${form.watch('showOutside') ? '' : 'text-gray-300'}`}
+          >
+            Show Outside
+          </label>
+        </div>
       </div>
       <div className="flex gap-8 font-semibold items-center px-1 py-2">
-        <div className="shrink-0 flex gap-1">
-          <input id="task-urgency" type="checkbox" {...form.register('isUrgent', {disabled: isPending})} />
+        <div className="shrink-0 flex gap-1 items-center">
+          <input
+            id="task-urgency"
+            type="checkbox"
+            {...form.register('isUrgent')}
+          disabled={isPending}
+          />
           <label
             htmlFor="task-urgency"
             className={`w-full ${form.watch('isUrgent') ? '' : 'text-gray-300'}`}
@@ -560,8 +572,13 @@ const TaskFields = ({
             Urgent
           </label>
         </div>
-        <div className="shrink-0 flex gap-1">
-          <input id="task-importance" type="checkbox" {...form.register('isImportant', {disabled: isPending})} />
+        <div className="shrink-0 flex gap-1 items-center">
+          <input
+            id="task-importance"
+            type="checkbox"
+            {...form.register('isImportant')}
+            disabled={isPending}
+          />
           <label
             htmlFor="task-importance"
             className={`w-full ${form.watch('isImportant') ? '' : 'text-gray-300'}`}
@@ -575,10 +592,11 @@ const TaskFields = ({
         <div className="flex gap-2 items-center">
           <FaHashtag className="text-sm" />
           <select
-            {...form.register('size', { valueAsNumber: true, disabled: isPending })}
+            {...form.register('size', { valueAsNumber: true })}
             className={`w-full ${form.watch('size') ? '' : 'text-gray-300'}`}
+            disabled={isPending}
           >
-            <option value='' defaultValue=''>
+            <option value="" defaultValue="">
               No Size
             </option>
             {Array.from(new Array(4)).map((_, i) => (
@@ -591,10 +609,11 @@ const TaskFields = ({
         <div className="flex gap-2 items-center">
           <FaAnchor />
           <select
-            {...form.register('weight', { valueAsNumber: true, disabled: isPending })}
+            {...form.register('weight', { valueAsNumber: true })}
             className={`w-full ${form.watch('weight') ? '' : 'text-gray-300'}`}
+            disabled={isPending}
           >
-            <option value='' defaultValue=''>
+            <option value="" defaultValue="">
               No Weight
             </option>
             {Array.from(new Array(4)).map((_, i) => (

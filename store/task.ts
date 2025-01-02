@@ -25,6 +25,7 @@ export interface TaskType {
   isUrgent?: boolean;
   size?: number | null;
   weight?: number | null;
+  showOutside?: boolean;
 }
 
 export type TaskStatusType = 'todo' | 'done' | 'delayed' | 'dismissed';
