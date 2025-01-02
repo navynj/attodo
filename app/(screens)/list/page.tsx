@@ -28,7 +28,7 @@ const Page = () => {
   });
   notes?.map((note) => {
     pushDate(note.date);
-  });
+  })
   const dateSet = new Set(dateList);
 
   return (
@@ -38,7 +38,7 @@ const Page = () => {
           <Loader />
         </div>
       ) : (
-        [...dateSet].map((date) => (
+        [...dateSet].sort().map((date) => (
           <ul key={date}>
             <h5 className="font-extrabold mb-4">{getDateStr(date)}</h5>
             <ul className="space-y-6">

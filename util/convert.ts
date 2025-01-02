@@ -1,4 +1,4 @@
-import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 
 export const convertMainFormData = (values: Partial<mainFormSchemaType>) => ({
   ...values,
@@ -7,4 +7,6 @@ export const convertMainFormData = (values: Partial<mainFormSchemaType>) => ({
   date: values.date ? new Date(values.date) : undefined,
   dueDate: values.dueDate ? new Date(values.dueDate) : undefined,
   startDate: values.startDate ? new Date(values.startDate) : undefined,
+  size: values.type === 'event' || values.type === 'note' ? undefined : values.size,
+  weight: values.type === 'event' || values.type === 'note' ? undefined : values.weight,
 });

@@ -2,7 +2,7 @@ import { getDashDate } from '@/util/date';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { todayAtom } from './ui';
 import { TaskType } from './task';
-import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 import { convertMainFormData } from '@/util/convert';
 import { queryClient } from '@/lib/query';
 
@@ -17,8 +17,8 @@ export interface GoalType {
   isPinned?: boolean;
   isImportant?: boolean;
   isUrgent?: boolean;
-  size?: number;
-  weight?: number;
+  size?: number | null;
+  weight?: number | null;
   tasks: TaskType[];
 }
 

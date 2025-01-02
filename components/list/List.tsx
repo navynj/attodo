@@ -5,7 +5,7 @@ import { TaskType } from '@/store/task';
 import { ClassNameProps } from '@/types/className';
 import { useState } from 'react';
 import { FaChevronDown, FaChevronRight, FaChevronUp } from 'react-icons/fa6';
-import ListItem from './ListItem';
+import ListItem from '../../app/_components/ListItem';
 
 interface ListProps extends ClassNameProps {
   title?: string;

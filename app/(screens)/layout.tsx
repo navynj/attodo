@@ -1,8 +1,8 @@
-import Nav from '@/components/layout/Nav';
+import Nav from '@/app/_layout/Nav';
 import React, { Suspense } from 'react';
-import MainFormOverlay from '../_components/MainFormOverlay';
-import TaskDateInputOverlay from '../_components/TaskDateInputOverlay';
-import DeleteConfirmOverlay from '../_components/DeleteConfirmOverlay';
+import MainFormOverlay from '../_overlay/MainFormOverlay';
+import TaskDateInputOverlay from '../_overlay/TaskDateInputOverlay';
+import DeleteConfirmOverlay from '../_overlay/DeleteConfirmOverlay';
 
 export default function ScreenLayout({
   children,

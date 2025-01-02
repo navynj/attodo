@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { todayAtom } from './ui';
 import { GoalType } from './goals';
 import { ProjectType } from './project';
-import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 import { queryClient } from '@/lib/query';
 import { atom } from 'jotai';
 import { convertMainFormData } from '@/util/convert';
@@ -23,8 +23,8 @@ export interface TaskType {
   isPinned?: boolean;
   isImportant?: boolean;
   isUrgent?: boolean;
-  size?: number;
-  weight?: number;
+  size?: number | null;
+  weight?: number | null;
 }
 
 export type TaskStatusType = 'todo' | 'done' | 'delayed' | 'dismissed';

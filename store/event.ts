@@ -1,7 +1,7 @@
 import { getDashDate } from '@/util/date';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { todayAtom } from './ui';
-import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 import { convertMainFormData } from '@/util/convert';
 import { queryClient } from '@/lib/query';
 

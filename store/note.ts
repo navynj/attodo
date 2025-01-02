@@ -1,4 +1,4 @@
-import { mainFormSchemaType } from '@/app/_components/MainFormOverlay';
+import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 import { queryClient } from '@/lib/query';
 import { convertMainFormData } from '@/util/convert';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
@@ -23,7 +23,6 @@ export const notesAtom = atomWithQuery<NoteType[]>((get) => {
     },
   };
 });
-
 
 export const noteMutation = atomWithMutation<NoteType, Partial<mainFormSchemaType>>(
   () => ({
@@ -50,4 +49,3 @@ export const noteMutation = atomWithMutation<NoteType, Partial<mainFormSchemaTyp
     },
   })
 );
-
