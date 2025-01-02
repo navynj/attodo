@@ -9,8 +9,9 @@ import { goalMutation, goalsAtom, GoalType } from '@/store/goals';
 import { noteMutation } from '@/store/note';
 import { taskMutation } from '@/store/task';
 import { mainFormDataAtom, todayAtom } from '@/store/ui';
-import { getDateStr } from '@/util/date';
+import { getDashDate, getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
+import dayjs from 'dayjs';
 import { useAtom, useAtomValue } from 'jotai';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -19,6 +20,7 @@ import { FieldPath, FieldValues, Path, useForm, UseFormReturn } from 'react-hook
 import { FaCheckSquare } from 'react-icons/fa';
 import {
   FaAnchor,
+  FaArrowRight,
   FaCalendar,
   FaCheck,
   FaCopy,
@@ -369,18 +371,52 @@ const MainFormOverlay = () => {
         <div className="flex justify-between items-center gap-1 mt-4 [&>*]:w-full [&>*]:py-2 font-extrabold text-xs text-gray-400">
           <Link
             href={`${pathname}?${params.toString()}&delete-confirm=show`}
-            type="button"
             className="flex justify-center items-center gap-2"
           >
             <FaTrash /> <span>Delete</span>
           </Link>
           {form.watch('type') === 'task' && (
-            <Link
-              href={`${pathname}?${params.toString()}&task-date-input=show&mode=duplicate`}
-              className="flex justify-center items-center gap-2"
-            >
-              <FaCopy /> <span>Duplicate</span>
-            </Link>
+            <>
+              {defaultValues.status === 'todo' &&
+                dayjs(getDashDate(defaultValues.date)) <
+                  dayjs(getDashDate(new Date())) && (
+                  <button
+                    type="button"
+                    className="flex justify-center items-center gap-2"
+                    onClick={() => {
+                      taskMutate({
+                        id: defaultValues.id,
+                        date: dayjs(today).toISOString(),
+                      });
+                    }}
+                  >
+                    <FaArrowRight /> <span>Move here</span>
+                  </button>
+                )}
+              {!(
+                defaultValues.status === 'todo' &&
+                dayjs(getDashDate(defaultValues.date)) < dayjs(getDashDate(new Date()))
+              ) && (
+                <button
+                  type="button"
+                  className="flex justify-center items-center gap-2"
+                  onClick={() => {
+                    taskMutate({
+                      id: defaultValues.id,
+                      date: dayjs(defaultValues.date).add(1, 'day').toISOString(),
+                    });
+                  }}
+                >
+                  <FaArrowRight /> <span>Move next</span>
+                </button>
+              )}
+              <Link
+                href={`${pathname}?${params.toString()}&task-date-input=show&mode=duplicate`}
+                className="flex justify-center items-center gap-2"
+              >
+                <FaCopy /> <span>Duplicate</span>
+              </Link>
+            </>
           )}
         </div>
       )}
@@ -547,11 +583,13 @@ const TaskFields = ({
             id="task-show-outside"
             type="checkbox"
             {...form.register('showOutside')}
-          disabled={isPending}
+            disabled={isPending}
           />
           <label
             htmlFor="task-show-outside"
-            className={`w-full text-xs ${form.watch('showOutside') ? '' : 'text-gray-300'}`}
+            className={`w-full text-xs ${
+              form.watch('showOutside') ? '' : 'text-gray-300'
+            }`}
           >
             Show Outside
           </label>
@@ -563,7 +601,7 @@ const TaskFields = ({
             id="task-urgency"
             type="checkbox"
             {...form.register('isUrgent')}
-          disabled={isPending}
+            disabled={isPending}
           />
           <label
             htmlFor="task-urgency"
