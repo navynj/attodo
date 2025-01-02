@@ -6,13 +6,10 @@ import { goalsAtom } from '@/store/goals';
 import { notesAtom } from '@/store/note';
 import { tasksAtom } from '@/store/task';
 import { mainFormDataAtom } from '@/store/ui';
-import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAtomValue } from 'jotai';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useRef } from 'react';
-import { FieldPath, useForm } from 'react-hook-form';
-import { FaCalendar } from 'react-icons/fa';
+import { usePathname, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
 import { FaCircleExclamation } from 'react-icons/fa6';
 import * as z from 'zod';
 const formSchema = z.object({});
@@ -21,6 +18,7 @@ type schemaType = z.infer<typeof formSchema>;
 
 const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
   const router = useRouter();
+  const pathname = usePathname();
 
   const defaultValues = useAtomValue(mainFormDataAtom);
   const { refetch: refetchProjects } = useAtomValue(tasksAtom);
@@ -43,6 +41,10 @@ const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
       );
 
       router.back();
+
+      if (pathname.includes('goal') && defaultValues?.type === 'goal') {  
+        router.back();
+      }
 
       if (!response.ok) {
         throw new Error(response.status + ' ' + response.statusText);

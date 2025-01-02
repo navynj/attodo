@@ -3,9 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { PropsWithChildren } from 'react';
 import { FieldValues, UseFormReturn } from 'react-hook-form';
-import Overlay from './Overlay';
-import { OverlayProps } from './OverlayContent';
 import SaveCancelButton from './SaveCancelButton';
+import Overlay, { OverlayProps } from './Overlay';
 interface OverlayFormProps<T extends FieldValues> extends OverlayProps {
   form: UseFormReturn<T, any, undefined>;
   onSubmit: (values: T) => Promise<void>;

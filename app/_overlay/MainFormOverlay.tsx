@@ -145,10 +145,13 @@ const MainFormOverlay = () => {
     if (!isPending) {
       if (defaultValues) {
         router.back();
+        form.setValue('type', defaultValues.type);
+        if (defaultValues.type === 'task' && pathname === '/today') {
+          form.setValue('date', today.toISOString());
+        }
       }
 
       form.reset();
-      initTypeByPathname();
       setDefaultValues(undefined);
     }
   }, [isPending]);
@@ -184,7 +187,7 @@ const MainFormOverlay = () => {
         type,
         title,
         status: ['project', 'goal', 'task'].includes(type) ? 'todo' : undefined,
-        date: ['task', 'event'].includes(type) ? today.toISOString() : undefined,
+        date: ['task', 'event', 'note'].includes(type) ? today.toISOString() : undefined,
       });
     }
   }, [form.watch('type')]);
@@ -309,8 +312,10 @@ const MainFormOverlay = () => {
       {form.watch('type') === 'task' && (
         <TaskFields form={form} goals={goals} isPending={isPending} />
       )}
-      {form.watch('type') === 'event' && <EventFields form={form} />}
-      {form.watch('type') === 'note' && <NoteFields form={form} />}
+      {form.watch('type') === 'event' && (
+        <EventFields form={form} isPending={isPending} />
+      )}
+      {form.watch('type') === 'note' && <NoteFields form={form} isPending={isPending} />}
       <div className="space-y-2 my-2">
         {Object.keys(form.formState.errors).map((key) => (
           <div
@@ -410,12 +415,24 @@ const MainFormOverlay = () => {
                   <FaArrowRight /> <span>Move next</span>
                 </button>
               )}
-              <Link
-                href={`${pathname}?${params.toString()}&task-date-input=show&mode=duplicate`}
-                className="flex justify-center items-center gap-2"
-              >
-                <FaCopy /> <span>Duplicate</span>
-              </Link>
+              {isGoalPage ? (
+                <button
+                  type="button"
+                  className="flex justify-center items-center gap-2"
+                  onClick={() => {
+                    taskMutate(defaultValues);
+                  }}
+                >
+                  <FaCopy /> <span>Duplicate</span>
+                </button>
+              ) : (
+                <Link
+                  href={`${pathname}?${params.toString()}&task-date-input=show&mode=duplicate`}
+                  className="flex justify-center items-center gap-2"
+                >
+                  <FaCopy /> <span>Duplicate</span>
+                </Link>
+              )}
             </>
           )}
         </div>
@@ -427,35 +444,39 @@ const MainFormOverlay = () => {
 // Fields
 interface FieldProps<T extends FieldValues> {
   form: UseFormReturn<T, any, undefined>;
+  isPending: boolean;
 }
 
-const GoalFields = ({
-  form,
-  isPending,
-}: {
-  form: UseFormReturn<mainFormSchemaType, any, undefined>;
-  isPending: boolean;
-}) => {
+const GoalFields = ({ form, isPending }: FieldProps<mainFormSchemaType>) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
     <>
-      <div
-        className="relative flex px-1 py-2 gap-3 items-center cursor-pointer"
-        onClick={() => {
-          datePickerRef.current?.showPicker();
-        }}
-      >
-        <FaCalendar className="text-sm" />
-        {getDateStr(form.watch('dueDate')) || (
-          <span className="text-gray-300">No due date</span>
-        )}
-        <input
-          className="opacity-0 absolute w-full"
-          type="datetime-local"
-          {...form.register('dueDate')}
-          ref={(e) => {
-            form.register('dueDate').ref(e);
-            datePickerRef.current = e;
+      <div className="w-full flex px-1 py-2 justify-between items-center cursor-pointer">
+        <div
+          className="relative w-full flex gap-3 items-center"
+          onClick={() => {
+            datePickerRef.current?.showPicker();
+          }}
+        >
+          <FaCalendar className="text-sm" />
+          {getDateStr(form.watch('dueDate')) || (
+            <span className="text-gray-300">No due date</span>
+          )}
+          <input
+            className="opacity-0 absolute w-full"
+            type="datetime-local"
+            {...form.register('dueDate')}
+            ref={(e) => {
+              form.register('dueDate').ref(e);
+              datePickerRef.current = e;
+            }}
+            disabled={isPending}
+          />
+        </div>
+        <FaXmark
+          className="text-sm"
+          onClick={() => {
+            form.setValue('date', null);
           }}
         />
       </div>
@@ -534,31 +555,37 @@ const TaskFields = ({
   form,
   goals,
   isPending,
-}: {
-  form: UseFormReturn<mainFormSchemaType, any, undefined>;
-  goals?: GoalType[];
-  isPending: boolean;
-}) => {
+}: FieldProps<mainFormSchemaType> & { goals?: GoalType[] }) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
     <>
-      <div
-        className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer"
-        onClick={() => {
-          datePickerRef.current?.showPicker();
-        }}
-      >
-        <FaCalendar className="text-sm" />
-        {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
-        <input
-          className="opacity-0 absolute w-full"
-          type="datetime-local"
-          {...form.register('date')}
-          ref={(e) => {
-            form.register('date').ref(e);
-            datePickerRef.current = e;
+      <div className="w-full flex px-1 py-2 justify-between items-center cursor-pointer">
+        <div
+          className="relative w-full flex gap-3 items-center"
+          onClick={() => {
+            datePickerRef.current?.showPicker();
           }}
-          disabled={isPending}
+        >
+          <FaCalendar className="text-sm" />
+          {getDateStr(form.watch('date')) || (
+            <span className="text-gray-300">No date</span>
+          )}
+          <input
+            className="opacity-0 absolute w-full"
+            type="datetime-local"
+            {...form.register('date')}
+            ref={(e) => {
+              form.register('date').ref(e);
+              datePickerRef.current = e;
+            }}
+            disabled={isPending}
+          />
+        </div>
+        <FaXmark
+          className="text-sm"
+          onClick={() => {
+            form.setValue('date', null);
+          }}
         />
       </div>
       <div className="relative w-full flex px-1 py-2 gap-3 items-center cursor-pointer">
@@ -666,48 +693,66 @@ const TaskFields = ({
   );
 };
 
-const EventFields = <T extends FieldValues>({ form }: FieldProps<mainFormSchemaType>) => {
+const EventFields = ({ form, isPending }: FieldProps<mainFormSchemaType>) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
-    <div
-      className="relative flex px-1 py-2 gap-3 items-center cursor-pointer"
-      onClick={() => {
-        datePickerRef.current?.showPicker();
-      }}
-    >
-      <FaCalendar className="text-sm" />
-      {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
-      <input
-        className="opacity-0 absolute w-full"
-        type="datetime-local"
-        {...form.register('date')}
-        ref={(e) => {
-          form.register('date').ref(e);
-          datePickerRef.current = e;
+    <div className="w-full flex px-1 py-2 justify-between items-center cursor-pointer">
+      <div
+        className="relative w-full flex gap-3 items-center"
+        onClick={() => {
+          datePickerRef.current?.showPicker();
+        }}
+      >
+        <FaCalendar className="text-sm" />
+        {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
+        <input
+          className="opacity-0 absolute w-full"
+          type="datetime-local"
+          {...form.register('date')}
+          ref={(e) => {
+            form.register('date').ref(e);
+            datePickerRef.current = e;
+          }}
+          disabled={isPending}
+        />
+      </div>
+      <FaXmark
+        className="text-sm"
+        onClick={() => {
+          form.setValue('date', null);
         }}
       />
     </div>
   );
 };
 
-const NoteFields = <T extends FieldValues>({ form }: FieldProps<mainFormSchemaType>) => {
+const NoteFields = ({ form, isPending }: FieldProps<mainFormSchemaType>) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
   return (
-    <div
-      className="relative flex px-1 py-2 gap-3 items-center cursor-pointer text-sm"
-      onClick={() => {
-        datePickerRef.current?.showPicker();
-      }}
-    >
-      <FaCalendar />
-      {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
-      <input
-        className="opacity-0 absolute w-full"
-        type="datetime-local"
-        {...form.register('date')}
-        ref={(e) => {
-          form.register('date').ref(e);
-          datePickerRef.current = e;
+    <div className="w-full flex px-1 py-2 justify-between items-center cursor-pointer">
+      <div
+        className="relative w-full flex gap-3 items-center"
+        onClick={() => {
+          datePickerRef.current?.showPicker();
+        }}
+      >
+        <FaCalendar className="text-sm" />
+        {getDateStr(form.watch('date')) || <span className="text-gray-300">No date</span>}
+        <input
+          className="opacity-0 absolute w-full"
+          type="datetime-local"
+          {...form.register('date')}
+          ref={(e) => {
+            form.register('date').ref(e);
+            datePickerRef.current = e;
+          }}
+          disabled={isPending}
+        />
+      </div>
+      <FaXmark
+        className="text-sm"
+        onClick={() => {
+          form.setValue('date', null);
         }}
       />
     </div>

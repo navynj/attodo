@@ -26,12 +26,12 @@ const Page = () => {
         ) : (
           <>
             {goals
-              ?.filter((goal) => !goal.projectId && !goal.isPinned)
+              ?.filter((goal) => !goal.projectId && !goal.isPinned && !goal.dueDate)
               ?.map((goal) => (
                 <ListItem key={goal.id} {...goal} />
               ))}
             {tasks
-              ?.filter((task) => !task.date && !task.isPinned)
+              ?.filter((task) => !task.date && !task.isPinned && !task.goalId)
               ?.map((task) => (
                 <ListItem key={task.id} {...task} />
               ))}
