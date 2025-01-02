@@ -26,6 +26,14 @@ textarea::placeholder {
   color: rgb(209 213 219);
 }
 
+select {
+  -moz-appearance: none; 
+  -webkit-appearance: none; 
+  appearance: none;
+  outline: none;
+  background-color: transparent;
+}
+
 input:focus,
 textarea:focus {
   outline: none;

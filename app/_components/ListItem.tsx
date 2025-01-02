@@ -8,15 +8,19 @@ import { getDateStr } from '@/util/date';
 import dayjs from 'dayjs';
 import { useAtomValue, useSetAtom } from 'jotai';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { BsDash, BsDot } from 'react-icons/bs';
 import { FaCheckSquare } from 'react-icons/fa';
 import { FaArrowRight, FaFlag, FaSquare, FaXmark } from 'react-icons/fa6';
 
 const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
-  const setFormData = useSetAtom(mainFormDataAtom);
   const { type, id, title } = item;
+
+  const pathname = usePathname();
+  const isGoalPage = pathname.includes('goal');
+
+  const setFormData = useSetAtom(mainFormDataAtom);
 
   return type === 'goal' ? (
     <GoalItem {...item} />
@@ -37,13 +41,29 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
           setFormData(item);
         }}
       >
-        {type === 'task' && item.goal && (
+        {type === 'task' && item.goal && !isGoalPage && (
           <div className="flex items-center gap-[0.3rem] text-xs font-extrabold">
             <FaFlag className="!text-[0.5rem]" />
-            <p>{item.goal.title}{item.goal.dueDate && <>{'﹒~'}{dayjs(item.goal.dueDate).format('MMM D')}</>}</p>
+            <p>
+              {item.goal.title}
+              {item.goal.dueDate && (
+                <>
+                  {'﹒~'}
+                  {dayjs(item.goal.dueDate).format('MMM D')}
+                </>
+              )}
+            </p>
           </div>
         )}
-        <p>{title}</p>
+        <p>
+          {title}
+          {isGoalPage && item.date && (
+            <span className="text-[0.7rem] font-light shrink-0 ml-2 leading-4">
+              <span className="text-[0.6rem]">@</span>
+              {dayjs(item.date).format('MMM D')}
+            </span>
+          )}
+        </p>
       </Link>
     </div>
   );

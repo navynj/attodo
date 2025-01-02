@@ -19,6 +19,7 @@ export interface OverlayProps {
   disableBackdrop?: boolean;
   backLink?: string;
   className?: string;
+  z?: number;
 }
 
 const OverlayContent = ({
@@ -31,6 +32,7 @@ const OverlayContent = ({
   backdropZindex,
   disableBackdrop,
   backLink,
+  z,
   className,
   children,
 }: PropsWithChildren<OverlayProps>) => {
@@ -74,7 +76,7 @@ const OverlayContent = ({
               <motion.div
                 onClick={closeHandler}
                 className={`fixed top-0 bottom-0 left-0 right-0 z-[${
-                  backdropZindex === 0 ? 0 : backdropZindex || 99
+                  (backdropZindex === 0 ? 0 : backdropZindex || 99) + (z || 0)
                 }] bg-black lg:bg-white`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: backdropOpacity === 0 ? 0 : backdropOpacity || 0.7 }}
@@ -83,7 +85,7 @@ const OverlayContent = ({
               {/* Overlay */}
               <motion.div
                 className={cn(
-                  'absolute bottom-0 w-full p-6 rounded-tl-3xl rounded-tr-3xl bg-white z-[100] shadow-[0_4px_60px_0_rgba(99,99,99,0.2)] lg:shadow-none',
+                  `absolute bottom-0 w-full p-6 rounded-tl-3xl rounded-tr-3xl bg-white z-[${100 + (z || 0)}] shadow-[0_4px_60px_0_rgba(99,99,99,0.2)] lg:shadow-none`,
                   fromTop ? 'top-0 bottom-auto rounded-[0_0_1.5rem_1.5rem]' : '',
                   className
                 )}

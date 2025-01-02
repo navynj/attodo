@@ -39,7 +39,7 @@ const Page = () => {
       case 'scheduled':
         return task.date && task.status === 'todo';
       case 'done':
-        return task.status === 'done';
+        return task.status !== 'todo';
     }
   }).filter((task) => {
     switch (dateFilter) {
