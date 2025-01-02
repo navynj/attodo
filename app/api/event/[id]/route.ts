@@ -4,38 +4,54 @@ import { NextRequest, NextResponse } from 'next/server';
 export const GET = async (req: NextRequest, { params }: { params: { id: string } }) => {
   const id = params.id;
 
-  const post = await prisma.event.findUnique({
-    where: {
-      id,
-    },
-  });
+  try {
+    const event = await prisma.event.findUnique({
+      where: {
+        id,
+      },
+    });
 
-  return NextResponse.json({ post });
+    return NextResponse.json({ event });
+  } catch (error) {
+    console.error(error);
+    return new Response('Failed to get event', { status: 500 });
+  }
 };
 
 export async function PATCH(
   req: NextRequest,
   { params: { id } }: { params: { id: string } }
 ) {
-  const data = await req.json();
+  try {
+    const data = await req.json();
 
-  const res = await prisma.event.update({
-    where: {
-      id: id,
-    },
-    data,
-  });
+    const res = await prisma.event.update({
+      where: {
+        id: id,
+      },
+      data,
+    });
 
-  return NextResponse.json(res, { status: 200 });
+    return NextResponse.json(res, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return new Response('Failed to update event:' + id, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id;
 
-  const res = await prisma.event.delete({
-    where: {
-      id: id,
-    },
-  });
-  return NextResponse.json(res, { status: 200 });
+  try {
+    const res = await prisma.event.delete({
+      where: {
+        id: id,
+      },
+    });
+
+    return NextResponse.json(res, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return new Response('Failed to delete event:' + id, { status: 500 });
+  }
 }

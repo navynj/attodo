@@ -14,7 +14,7 @@ import ListItem from '../../_components/ListItem';
 import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 import Loader from '@/components/loader/Loader';
-import List from '@/app/_components/List';
+import List from '@/components/list/List';
 import { useMemo } from 'react';
 
 dayjs.extend(utc);
@@ -56,9 +56,6 @@ const Page = () => {
   }, [today, tasks, events, notes, goals]);
 
   const doneArr = useMemo(() => {
-
-
-    console.log('done updated');
     return (
       tasks?.filter(
         (task) =>
@@ -67,7 +64,6 @@ const Page = () => {
           getDashDate(task.date) === getDashDate(today)
       ) || []
     );
-
   }, [today, tasks]);
 
   const pinnedArr = useMemo(() => {
