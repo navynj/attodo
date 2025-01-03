@@ -24,7 +24,7 @@ const ListItem = (item: GoalType | NoteType | TaskType | EventType) => {
   return type === 'goal' ? (
     <GoalItem {...item} />
   ) : (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
       {type === 'task' ? (
         <TaskIcon id={id} status={item.status} />
       ) : (
@@ -109,7 +109,7 @@ const GoalItem = (item: GoalType) => {
   const { type, id, title } = item;
 
   return (
-    <div className="flex justify-between items-center gap-4">
+    <div className="flex justify-between items-center gap-3">
       <Link
         href={`?main-input=show`}
         className="w-full font-bold"

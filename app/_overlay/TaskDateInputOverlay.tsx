@@ -41,7 +41,7 @@ const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
   const datePickerRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    defaultValues && form.setValue('date', dayjs(defaultValues.date).add(1, 'day').toISOString());
+    defaultValues && defaultValues.date && form.setValue('date', dayjs(defaultValues.date).add(1, 'day').toISOString());
   }, [defaultValues]);
 
   const submitHandler = async (values: dateSchemaType) => {

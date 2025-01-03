@@ -4,6 +4,15 @@ import { NoteType } from '@/store/note';
 import { TaskType } from '@/store/task';
 import { LexoRank } from 'lexorank';
 import { getDashDate } from './date';
+import { queryClient } from '@/lib/query';
+
+export const updateData = (data: any, key: string) => {
+  queryClient.setQueryData([key], (prev: any) => {
+    return [
+    ...prev.filter((item: any) => item.id !== data.id),
+    convertRank(data),
+  ]});
+};
 
 export const convertMainFormData = (
   values: Partial<mainFormSchemaType> & { createdAt?: string; updatedAt?: string }
@@ -11,7 +20,7 @@ export const convertMainFormData = (
   ...values,
   status: values.type === 'event' || values.type === 'note' ? undefined : values.status,
   goalId: values.type === 'task' ? values.goalId || null : undefined,
-  date: values.type === 'goal' ? undefined : values.date ? new Date(values.date) : null,
+  date: values.type === 'goal' ? undefined : (values.date === undefined ? undefined : (values.date ? new Date(values.date) : null)),
   dueDate:
     values.type !== 'goal'
       ? undefined
@@ -34,9 +43,9 @@ export const convertMainFormData = (
 
 export const convertRank = (values: any) => ({
   ...values,
-  listRank: values.listRank ? LexoRank.parse(values.listRank) : undefined,
-  matrixRank: values.matrixRank ? LexoRank.parse(values.matrixRank) : undefined,
-  goalRank: values.goalRank ? LexoRank.parse(values.goalRank) : undefined,
+  listRank: values.listRank ? (typeof(values.listRank) === 'string' ? LexoRank.parse(values.listRank) : values.listRank) : undefined,
+  matrixRank: values.matrixRank ? (typeof(values.matrixRank) === 'string' ? LexoRank.parse(values.matrixRank) : values.matrixRank) : undefined,
+  goalRank: values.goalRank ? (typeof(values.goalRank) === 'string' ? LexoRank.parse(values.goalRank) : values.goalRank) : undefined,
 });
 
 export const getSortedList = (
@@ -87,8 +96,7 @@ export const createTaskRank = (
       !!defaultValues.isImportant === !!values.isImportant &&
       !!defaultValues.isUrgent === !!values.isUrgent
         ? values.matrixRank
-        : 
-        sortedMatrix && sortedMatrix[sortedMatrix.length - 1]
+        : sortedMatrix && sortedMatrix[sortedMatrix.length - 1]
         ? sortedMatrix[sortedMatrix.length - 1]?.matrixRank?.genNext() ||
           LexoRank.middle()
         : LexoRank.middle(),
