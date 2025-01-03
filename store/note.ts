@@ -1,6 +1,5 @@
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
-import { queryClient } from '@/lib/query';
-import { convertMainFormData, convertRank } from '@/util/convert';
+import { convertMainFormData, convertRank, updateData } from '@/util/convert';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { LexoRank } from 'lexorank';
 
@@ -18,7 +17,7 @@ export type TaskTypeType = 'goal' | 'project' | 'recurring';
 
 export const notesAtom = atomWithQuery<NoteType[]>((get) => {
   return {
-    queryKey: ['notes'],
+    queryKey: ['note'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/note');
       const data = await res.json();
@@ -29,7 +28,7 @@ export const notesAtom = atomWithQuery<NoteType[]>((get) => {
 
 export const noteMutation = atomWithMutation<NoteType, Partial<mainFormSchemaType>& {createdAt?: string, updatedAt?: string}>(
   () => ({
-    mutationKey: ['notes'],
+    mutationKey: ['note'],
     mutationFn: async (note) => {
       try {
         const res = await fetch(
@@ -45,10 +44,7 @@ export const noteMutation = atomWithMutation<NoteType, Partial<mainFormSchemaTyp
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['notes'], (prev: NoteType[]) => [
-        ...prev.filter((note) => note.id !== data.id),
-        convertRank(data),
-      ]);
-    },
+      updateData(data, 'note'); 
+    }
   })
 );

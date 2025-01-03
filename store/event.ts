@@ -1,9 +1,6 @@
-import { getDashDate } from '@/util/date';
-import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
-import { todayAtom } from './ui';
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
-import { convertMainFormData, convertRank } from '@/util/convert';
-import { queryClient } from '@/lib/query';
+import { convertMainFormData, convertRank, updateData } from '@/util/convert';
+import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { LexoRank } from 'lexorank';
 
 export interface EventType {
@@ -19,7 +16,7 @@ export interface EventType {
 
 export const eventsAtom = atomWithQuery<EventType[]>((get) => {
   return {
-    queryKey: ['events'],
+    queryKey: ['event'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/event');
       const data = await res.json();
@@ -30,7 +27,7 @@ export const eventsAtom = atomWithQuery<EventType[]>((get) => {
 
 export const eventMutation = atomWithMutation<EventType, Partial<mainFormSchemaType> & {createdAt?: string, updatedAt?: string}>(
   () => ({
-    mutationKey: ['events'],
+    mutationKey: ['event'],
     mutationFn: async (event) => {
       try {
         const res = await fetch(
@@ -48,10 +45,7 @@ export const eventMutation = atomWithMutation<EventType, Partial<mainFormSchemaT
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['events'], (prev: EventType[]) => [
-        ...prev.filter((event) => event.id !== data.id),
-        convertRank(data),
-      ]);
-    },
+      updateData(data, 'event');
+    }
   })
 );

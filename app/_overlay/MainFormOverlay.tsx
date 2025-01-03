@@ -133,7 +133,7 @@ const MainFormOverlay = () => {
         case 'event':
           sortedList = getSortedList(tasks, events, notes, values.date);
           eventMutate(
-            values.id
+            values.id && defaultValues && getDashDate(values.date) === getDashDate(defaultValues.date)
               ? values
               : {
                   ...values,
@@ -149,7 +149,7 @@ const MainFormOverlay = () => {
         case 'note':
           sortedList = getSortedList(tasks, events, notes, values.date);
           noteMutate(
-            values.id
+            values.id && defaultValues && getDashDate(values.date) === getDashDate(defaultValues.date)
               ? values
               : {
                   ...values,
@@ -163,8 +163,7 @@ const MainFormOverlay = () => {
           );
           break;
         default:
-          console.error('Not valid type');
-          break;
+          throw new Error('Not valid type');
       }
     } catch (error) {
       console.error(error);

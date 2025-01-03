@@ -2,10 +2,12 @@
 
 import ListItem from '@/app/_components/ListItem';
 import Button from '@/components/button/Button';
+import { DraggableItem, DragHandle } from '@/components/draggable/DraggableItem';
+import DraggableList from '@/components/draggable/DraggableList';
 import Loader from '@/components/loader/Loader';
 import Tab from '@/components/tab/Tab';
 import { goalsAtom } from '@/store/goals';
-import { tasksAtom } from '@/store/task';
+import { tasksAtom, TaskType } from '@/store/task';
 import { mainFormDataAtom } from '@/store/ui';
 import dayjs from 'dayjs';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -26,9 +28,8 @@ const GoalPage = ({ id }: { id: string }) => {
   const goal = useMemo(() => goalList?.find((goal) => goal.id === id), [goalList, id]);
 
   const tasks = useMemo(
-    () =>
-      taskList
-        ?.filter((task) => task.goalId === id)
+    () => {
+      const filteredTasks = taskList?.filter((task) => task.goalId === id)
         .filter((task) => {
           switch (filter) {
             case 'todo':
@@ -41,7 +42,10 @@ const GoalPage = ({ id }: { id: string }) => {
               return task.status !== 'todo';
           }
         })
-        .sort((a, b) => (filter === 'done' && dayjs(a.date) > dayjs(b.date) ? -1 : 1)),
+        filteredTasks?.sort((a, b) => (filter === 'done' ? (dayjs(a.date) > dayjs(b.date) ? -1 : 1) : b.goalRank && a.goalRank?.compareTo(b.goalRank) || 0));
+        return filteredTasks;
+      }
+        ,
     [taskList, id, filter]
   );
 
@@ -97,11 +101,19 @@ const GoalPage = ({ id }: { id: string }) => {
       {isFetchingTasks ? (
         <Loader />
       ) : (
-        <ul className="space-y-6">
-          {tasks?.map((task) => (
-            <ListItem key={task.id} {...task} />
-          ))}
-        </ul>
+        <DraggableList<TaskType>
+          items={tasks || []}
+          rankKey="goalRank"
+          renderItem={(item) => <DraggableItem id={item.id} className="flex items-center gap-2">
+            <DragHandle />
+            <ListItem {...item} />
+          </DraggableItem>}
+          className={`${
+            isFetchingTasks
+              ? 'h-[80%]'
+              : ''
+          } space-y-6`}
+        />
       )}
     </div>
   );

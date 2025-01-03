@@ -1,6 +1,5 @@
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
-import { queryClient } from '@/lib/query';
-import { convertMainFormData, convertRank } from '@/util/convert';
+import { convertMainFormData, convertRank, updateData } from '@/util/convert';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { LexoRank } from "lexorank";
 import { TaskType } from './task';
@@ -27,7 +26,7 @@ export type GoalStatusType = 'todo' | 'inprogress' | 'done' | 'dismissed';
 
 export const goalsAtom = atomWithQuery<GoalType[]>((get) => {
   return {
-    queryKey: ['goals'],
+    queryKey: ['goal'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/goal');
       const data = await res.json();
@@ -38,7 +37,7 @@ export const goalsAtom = atomWithQuery<GoalType[]>((get) => {
 
 export const goalMutation = atomWithMutation<GoalType, Partial<mainFormSchemaType> & {createdAt?: string, updatedAt?: string}>(
   () => ({
-    mutationKey: ['goals'],
+    mutationKey: ['goal'],
     mutationFn: async (goal) => {
       try {
         const res = await fetch(
@@ -54,10 +53,8 @@ export const goalMutation = atomWithMutation<GoalType, Partial<mainFormSchemaTyp
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['goals'], (prev: GoalType[]) => [
-        ...prev.filter((goal) => goal.id !== data.id),
-        convertRank(data),
-      ]);
-    },
+      updateData(data, 'goal');
+    }
   })
 );
+

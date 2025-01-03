@@ -1,6 +1,5 @@
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
-import { queryClient } from '@/lib/query';
-import { convertMainFormData, convertRank } from '@/util/convert';
+import { convertMainFormData, convertRank, updateData } from '@/util/convert';
 import { getDashDate } from '@/util/date';
 import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
 import { LexoRank } from 'lexorank';
@@ -34,7 +33,7 @@ export type TaskStatusType = 'todo' | 'done' | 'delayed' | 'dismissed';
 
 export const tasksAtom = atomWithQuery<TaskType[]>((get) => {
   return {
-    queryKey: ['tasks'],
+    queryKey: ['task'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/task');
       const data = await res.json();
@@ -45,7 +44,7 @@ export const tasksAtom = atomWithQuery<TaskType[]>((get) => {
 
 export const taskMutation = atomWithMutation<TaskType, Partial<mainFormSchemaType> & {createdAt?: string, updatedAt?: string}>(
   () => ({
-    mutationKey: ['tasks'],
+    mutationKey: ['task'],
     mutationFn: async (task) => {
       try {
         const res = await fetch(
@@ -61,18 +60,16 @@ export const taskMutation = atomWithMutation<TaskType, Partial<mainFormSchemaTyp
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['tasks'], (prev: TaskType[]) => [
-        ...prev.filter((task) => task.id !== data.id),
-        convertRank(data),
-      ].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0));
-    },
-  })
-);
+      updateData(data, 'task');
+    }
+  }
+));
 
 export const todayTasksAtom = atomWithQuery<TaskType[]>((get) => {
   return {
     queryKey: ['todayTasks', get(todayAtom)],
     queryFn: async ({ queryKey: [, today] }) => {
+      
       const res = await fetch(
         process.env.NEXT_PUBLIC_BASE_URL + `/api/task?date=${getDashDate(today as Date)}`
       );

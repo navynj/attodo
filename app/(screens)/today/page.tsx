@@ -3,7 +3,7 @@ import DayNav from '@/components/date/DayNav';
 import YearMonthNav from '@/components/date/YearMonthNav';
 import { eventsAtom } from '@/store/event';
 import { notesAtom } from '@/store/note';
-import { tasksAtom } from '@/store/task';
+import { tasksAtom, taskMutation } from '@/store/task';
 import { useAtomValue } from 'jotai';
 
 import { goalsAtom } from '@/store/goals';
@@ -16,38 +16,42 @@ import dayjs from 'dayjs';
 import Loader from '@/components/loader/Loader';
 import List from '@/components/list/List';
 import { useMemo } from 'react';
+import DraggableList from '@/components/draggable/DraggableList';
+import { DraggableItem, DragHandle } from '@/components/draggable/DraggableItem';
+import { cp } from 'fs';
 
 dayjs.extend(utc);
 
 const Page = () => {
   const today = useAtomValue(todayAtom);
 
-  const { data: tasks, isFetching: isFetchingTasks } = useAtomValue(tasksAtom);
+  const { data: tasks, isFetching: isFetchingTasks, refetch: refetchTasks } = useAtomValue(tasksAtom);
   const { data: events, isFetching: isFetchingEvents } = useAtomValue(eventsAtom);
   const { data: notes, isFetching: isFetchingNotes } = useAtomValue(notesAtom);
   const { data: goals, isFetching: isFetchingGoals } = useAtomValue(goalsAtom);
 
   const overdueArr = useMemo(() => {
-    return (
-      tasks?.filter(
-        (task) =>
-          task.status === 'todo' &&
-          task.date &&
-          (!task.goalId || task.showOutside) &&
-          dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
-      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
-    );
+    const arr = tasks?.filter(
+      (task) =>
+        task.status === 'todo' &&
+        task.date &&
+        (!task.goalId || task.showOutside) &&
+        dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
+    ) || [];
+    arr.sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
+    return arr;
   }, [tasks]);
 
   const taskArr = useMemo(() => {
-    return (
-      tasks?.filter(
+    const arr = tasks?.filter(
         (task) =>
           task.date &&
           (!task.goalId || task.showOutside) &&
           getDashDate(task.date) === getDashDate(today)
-      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
-    );
+      ) || [];
+
+    arr.sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
+    return arr;
   } , [today, tasks]);
 
   const todoArr = useMemo(() => {
@@ -58,15 +62,17 @@ const Page = () => {
     const todoTaskArr =
       taskArr?.filter((task) => task.status === 'todo' ) || [];
 
-    return [...eventArr, ...todoTaskArr, ...noteArr].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
+    const arr = [...todoTaskArr, ...eventArr, ...noteArr];
+    arr.sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
+    return arr;
   }, [today, taskArr, events, notes]);
 
   const doneArr = useMemo(() => {
-    return (
-      taskArr?.filter(
-        (task) => (task.status !== 'todo')
-      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0) || []
-    );
+    const arr =taskArr?.filter(
+      (task) => (task.status !== 'todo')
+    ) || [];
+      arr.sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0) || []
+    return arr;
   }, [taskArr]);
 
   const pinnedArr = useMemo(() => {
@@ -94,11 +100,13 @@ const Page = () => {
 
     const noteArr = notes?.filter((goal) => goal.isPinned) || [];
 
-    return [...taskArr, ...eventArr, ...noteArr].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
+    const arr = [...taskArr, ...eventArr, ...noteArr];
+    arr.sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
+    return arr;
   }, [today, tasks, events, notes, goals]);
 
   return (
-    <div className="h-full p-14 flex flex-col gap-10">
+    <div className="h-full p-10 flex flex-col gap-10">
       {/* Header */}
       <div className="mt-4 flex justify-between">
         <YearMonthNav />
@@ -113,23 +121,24 @@ const Page = () => {
           isFolded={true}
         ></List>
       )}
-      {!!todoArr.length && (
-        <ul
+      {!!todoArr.length && 
+        isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals ? <div className="w-full h-full flex justify-center items-center">
+            <Loader />
+          </div> :
+        <DraggableList
+          items={todoArr}
+          rankKey="listRank"
+          renderItem={(item) => <DraggableItem id={item.id} className="flex items-center gap-2">
+            <DragHandle />
+            <ListItem {...item} />
+          </DraggableItem>}
           className={`${
             isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals
               ? 'h-[80%]'
               : ''
           } space-y-6`}
-        >
-          {isFetchingTasks || isFetchingEvents || isFetchingNotes || isFetchingGoals ? (
-            <div className="w-full h-full flex justify-center items-center">
-              <Loader />
-            </div>
-          ) : (
-            todoArr?.map((item) => <ListItem key={item.id} {...item} />)
-          )}
-        </ul>
-      )}
+        />
+      }
       {!!doneArr.length && (
         <List
           title="Done"

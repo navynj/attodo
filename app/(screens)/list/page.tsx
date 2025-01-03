@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 import { useAtomValue } from 'jotai';
 import ListItem from '../../_components/ListItem';
 import Loader from '@/components/loader/Loader';
+import DraggableList from '@/components/draggable/DraggableList';
+import { DraggableItem, DragHandle } from '@/components/draggable/DraggableItem';
 
 const Page = () => {
   const { data: tasks, isFetching: isFetchingTasks } = useAtomValue(tasksAtom);
@@ -38,36 +40,31 @@ const Page = () => {
           <Loader />
         </div>
       ) : (
-        [...dateSet].sort().map((date) => (
+        [...dateSet].sort().map((date) => 
           <ul key={date}>
             <h5 className="font-extrabold mb-4">{getDateStr(date)}</h5>
-            <ul className="space-y-6">
-              {events
-                ?.filter((event) => getDashDate(event.date) === date)
-                .map((event) => (
-                  <ListItem key={event.id} {...event} />
-                ))}
-              {tasks
-                ?.filter((task) => {
-                  if (
-                    task.status === 'todo' &&
-                    task.date &&
-                    getDashDate(task.date) === date
-                  )
-                    return true;
-                })
-                .map((task) => (
-                  <ListItem key={task.id} {...task} />
-                ))}
-              {notes
-                ?.filter((note) => getDashDate(note.date) === date)
-                .map((note) => (
-                  <ListItem key={note.id} {...note} />
-                ))}
-            </ul>
+            <DraggableList
+            items={[...(events || []).filter((event) => getDashDate(event.date) === date), ...(tasks || []).filter((task) => {
+              if (
+                task.status === 'todo' &&
+                task.date &&
+                getDashDate(task.date) === date
+              )
+                return true;
+            }), ...(notes || []).filter((note) => getDashDate(note.date) === date)].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 )}   
+            rankKey="listRank"
+          renderItem={(item) => <DraggableItem id={item.id} className="flex items-center gap-2">
+            <DragHandle />
+            <ListItem {...item} />
+          </DraggableItem>}
+          className={`${
+            isFetchingTasks || isFetchingEvents || isFetchingNotes
+              ? 'h-[80%]'
+              : ''
+          } space-y-6`}
+            />
           </ul>
-        ))
-      )}
+      ))}
     </div>
   );
 };
