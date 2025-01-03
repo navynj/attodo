@@ -1,20 +1,20 @@
 'use client';
 
-import { eventsAtom } from '@/store/event';
-import { notesAtom } from '@/store/note';
-import { tasksAtom } from '@/store/task';
-import { getDashDate, getDateStr } from '@/util/date';
-import dayjs from 'dayjs';
-import { useAtomValue } from 'jotai';
-import MatrixItem from '../../_components/MatrixItem';
 import Loader from '@/components/loader/Loader';
-import { goalsAtom } from '@/store/goals';
-import { useMemo, useState } from 'react';
 import Tab from '@/components/tab/Tab';
+import { goalsAtom } from '@/store/goals';
+import { tasksAtom } from '@/store/task';
+import { typeAtom } from '@/store/ui';
+import { getDashDate } from '@/util/date';
+import dayjs from 'dayjs';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useMemo, useState } from 'react';
+import MatrixItem from '../../_components/MatrixItem';
 
 const Page = () => {
   const { data: goalData, isFetching: isFetchingGoals } = useAtomValue(goalsAtom);
   const { data: taskData, isFetching: isFetchingTasks } = useAtomValue(tasksAtom);
+  const setType = useSetAtom(typeAtom);
 
   const [isGoal, setIsGoal] = useState(true);
   const [statusFilter, setStatusFilter] = useState('todo');
@@ -27,10 +27,11 @@ const Page = () => {
       case 'done':
         return goal.status === 'done';
     }
-  }), [goalData, statusFilter]);
+  }).sort((a, b) => b.matrixRank ? a.matrixRank?.compareTo(b.matrixRank) || 0 : 0), [goalData, statusFilter]);
 
 
-  const tasks = useMemo(() => taskData?.filter((task) => {
+  const tasks = useMemo(() => {
+    const taskMatrixList = taskData?.filter((task) => {
     if (task.goalId && !task.showOutside) {
       return false;
     }
@@ -56,7 +57,16 @@ const Page = () => {
       case 'all':
         return true;
     }
-  }), [taskData, statusFilter, dateFilter]);
+  })
+
+  if (statusFilter === 'done') {
+    taskMatrixList?.sort((a, b) => a.date ? getDashDate(a.date) === getDashDate(b.date) ? b.matrixRank && a.matrixRank?.compareTo(b.matrixRank) || 0 : dayjs(b.date).valueOf() - dayjs(a.date).valueOf() : 0);
+  } else {
+    taskMatrixList?.sort((a, b) => b.matrixRank && a.matrixRank?.compareTo(b.matrixRank) || -1);
+  }
+  
+  return taskMatrixList;
+}, [taskData, statusFilter, dateFilter]);
 
   return (
     <div className="h-full p-6">
@@ -69,13 +79,19 @@ const Page = () => {
           {/* Filters */}
           <div className="flex gap-4 text-2xl font-extrabold my-4 tracking-tighter">
             <button
-              onClick={() => setIsGoal(true)}
+              onClick={() => {
+                setIsGoal(true);
+                setType('goal');
+              }}
               className={isGoal ? '' : 'text-gray-300'}
             >
               Goals
             </button>
             <button
-              onClick={() => setIsGoal(false)}
+              onClick={() => {
+                setIsGoal(false);
+                setType('task');
+              }}
               className={isGoal ? 'text-gray-300' : ''}
             >
               Tasks

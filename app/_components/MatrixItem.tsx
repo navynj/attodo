@@ -94,13 +94,7 @@ const GoalItem = (item: GoalType) => {
 
   return (
     <div className="flex justify-between items-center gap-4 py-1 text-sm">
-      <Link
-        href={`/goal/${item.id}`}
-        className="w-full"
-        onClick={() => {
-          setFormData(item);
-        }}
-      >
+      <Link href={`/goal/${item.id}`} className="w-full">
         {title}
       </Link>
     </div>

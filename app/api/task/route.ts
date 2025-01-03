@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 
     return new Response(JSON.stringify(data), { status: 201 });
   } catch (error) {
+    console.error(error);
     return new Response('Failed to fetch tasks', { status: 500 });
   }
 }

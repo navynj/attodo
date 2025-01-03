@@ -35,7 +35,7 @@ const Page = () => {
           task.date &&
           (!task.goalId || task.showOutside) &&
           dayjs(getDashDate(task.date)) < dayjs(getDashDate(new Date()))
-      ) || []
+      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
     );
   }, [tasks]);
 
@@ -46,7 +46,7 @@ const Page = () => {
           task.date &&
           (!task.goalId || task.showOutside) &&
           getDashDate(task.date) === getDashDate(today)
-      ) || []
+      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0 ) || []
     );
   } , [today, tasks]);
 
@@ -58,14 +58,14 @@ const Page = () => {
     const todoTaskArr =
       taskArr?.filter((task) => task.status === 'todo' ) || [];
 
-    return [...eventArr, ...todoTaskArr, ...noteArr];
+    return [...eventArr, ...todoTaskArr, ...noteArr].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
   }, [today, taskArr, events, notes]);
 
   const doneArr = useMemo(() => {
     return (
       taskArr?.filter(
         (task) => (task.status !== 'todo')
-      ) || []
+      ).sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0) || []
     );
   }, [taskArr]);
 
@@ -94,7 +94,7 @@ const Page = () => {
 
     const noteArr = notes?.filter((goal) => goal.isPinned) || [];
 
-    return [...taskArr, ...eventArr, ...noteArr];
+    return [...taskArr, ...eventArr, ...noteArr].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0);
   }, [today, tasks, events, notes, goals]);
 
   return (
