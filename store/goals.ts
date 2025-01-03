@@ -1,10 +1,10 @@
-import { getDashDate } from '@/util/date';
-import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
-import { todayAtom } from './ui';
-import { TaskType } from './task';
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
-import { convertMainFormData } from '@/util/convert';
 import { queryClient } from '@/lib/query';
+import { convertMainFormData, convertRank } from '@/util/convert';
+import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
+import { LexoRank } from "lexorank";
+import { TaskType } from './task';
+
 
 export interface GoalType {
   type: 'goal';
@@ -20,6 +20,7 @@ export interface GoalType {
   size?: number | null;
   weight?: number | null;
   tasks: TaskType[];
+  matrixRank?: LexoRank;
 }
 
 export type GoalStatusType = 'todo' | 'inprogress' | 'done' | 'dismissed';
@@ -29,12 +30,13 @@ export const goalsAtom = atomWithQuery<GoalType[]>((get) => {
     queryKey: ['goals'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/goal');
-      return await res.json();
+      const data = await res.json();
+      return data.map((item: any) => convertRank(item));
     },
   };
 });
 
-export const goalMutation = atomWithMutation<GoalType, Partial<mainFormSchemaType>>(
+export const goalMutation = atomWithMutation<GoalType, Partial<mainFormSchemaType> & {createdAt?: string, updatedAt?: string}>(
   () => ({
     mutationKey: ['goals'],
     mutationFn: async (goal) => {
@@ -54,12 +56,8 @@ export const goalMutation = atomWithMutation<GoalType, Partial<mainFormSchemaTyp
     onSuccess: (data) => {
       queryClient.setQueryData(['goals'], (prev: GoalType[]) => [
         ...prev.filter((goal) => goal.id !== data.id),
-        data,
+        convertRank(data),
       ]);
     },
   })
 );
-
-const convertTaskData = (tasks: TaskType[]) => {
-  return tasks;
-};

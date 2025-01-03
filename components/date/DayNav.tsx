@@ -55,7 +55,7 @@ const DayNav = ({ isVertical, className }: DayNavProps) => {
       </button>
       <input
         ref={dateInput}
-        type="date"
+        type="datetime-local"
         onChange={dateChangeHandler}
         value={getDashDate(today)}
         className="absolute invisible"

@@ -1,13 +1,12 @@
-import { getDashDate } from '@/util/date';
-import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
-import { useQueryClient } from '@tanstack/react-query';
-import { todayAtom } from './ui';
-import { GoalType } from './goals';
-import { ProjectType } from './project';
 import { mainFormSchemaType } from '@/app/_overlay/MainFormOverlay';
 import { queryClient } from '@/lib/query';
-import { atom } from 'jotai';
-import { convertMainFormData } from '@/util/convert';
+import { convertMainFormData, convertRank } from '@/util/convert';
+import { getDashDate } from '@/util/date';
+import { atomWithMutation, atomWithQuery } from 'jotai-tanstack-query';
+import { LexoRank } from 'lexorank';
+import { GoalType } from './goals';
+import { ProjectType } from './project';
+import { todayAtom } from './ui';
 
 export interface TaskType {
   type: 'task';
@@ -26,6 +25,9 @@ export interface TaskType {
   size?: number | null;
   weight?: number | null;
   showOutside?: boolean;
+  listRank?: LexoRank;
+  matrixRank?: LexoRank;
+  goalRank?: LexoRank;
 }
 
 export type TaskStatusType = 'todo' | 'done' | 'delayed' | 'dismissed';
@@ -35,12 +37,13 @@ export const tasksAtom = atomWithQuery<TaskType[]>((get) => {
     queryKey: ['tasks'],
     queryFn: async () => {
       const res = await fetch(process.env.NEXT_PUBLIC_BASE_URL + '/api/task');
-      return await res.json();
+      const data = await res.json();
+      return data.map((item: any) => convertRank(item));
     },
   };
 });
 
-export const taskMutation = atomWithMutation<TaskType, Partial<mainFormSchemaType>>(
+export const taskMutation = atomWithMutation<TaskType, Partial<mainFormSchemaType> & {createdAt?: string, updatedAt?: string}>(
   () => ({
     mutationKey: ['tasks'],
     mutationFn: async (task) => {
@@ -60,8 +63,8 @@ export const taskMutation = atomWithMutation<TaskType, Partial<mainFormSchemaTyp
     onSuccess: (data) => {
       queryClient.setQueryData(['tasks'], (prev: TaskType[]) => [
         ...prev.filter((task) => task.id !== data.id),
-        data,
-      ]);
+        convertRank(data),
+      ].sort((a, b) => b.listRank && a.listRank?.compareTo(b.listRank) || 0));
     },
   })
 );

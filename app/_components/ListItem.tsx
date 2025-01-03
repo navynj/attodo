@@ -3,7 +3,7 @@ import { EventType } from '@/store/event';
 import { GoalType } from '@/store/goals';
 import { NoteType } from '@/store/note';
 import { taskMutation, TaskStatusType, TaskType } from '@/store/task';
-import { mainFormDataAtom } from '@/store/ui';
+import { mainFormDataAtom, typeAtom } from '@/store/ui';
 import dayjs from 'dayjs';
 import { useAtomValue, useSetAtom } from 'jotai';
 import Link from 'next/link';
@@ -105,6 +105,7 @@ const TaskIcon = ({ id, status: statusProps }: Pick<TaskType, 'id' | 'status'>) 
 const GoalItem = (item: GoalType) => {
   const router = useRouter();
   const setFormData = useSetAtom(mainFormDataAtom);
+    const setType = useSetAtom(typeAtom);  
   const { type, id, title } = item;
 
   return (
@@ -122,7 +123,8 @@ const GoalItem = (item: GoalType) => {
         <Button
           className="px-2 py-1 text-xs rounded-md shrink-0"
           onClick={() => {
-            router.push(`?main-input=show&goalId=${id}&type=task`);
+            router.push(`?main-input=show&goalId=${id}`);
+            setType('task');
           }}
         >
           Add Task

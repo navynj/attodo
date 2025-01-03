@@ -4,15 +4,17 @@ import Button from '@/components/button/Button';
 import Loader from '@/components/loader/Loader';
 import OverlayForm from '@/components/overlay/OverlayForm';
 import Tab from '@/components/tab/Tab';
-import { eventMutation } from '@/store/event';
+import { eventMutation, eventsAtom } from '@/store/event';
 import { goalMutation, goalsAtom, GoalType } from '@/store/goals';
-import { noteMutation } from '@/store/note';
-import { taskMutation } from '@/store/task';
-import { mainFormDataAtom, todayAtom } from '@/store/ui';
+import { noteMutation, notesAtom } from '@/store/note';
+import { taskMutation, tasksAtom } from '@/store/task';
+import { mainFormDataAtom, todayAtom, typeAtom } from '@/store/ui';
+import { createTaskRank, getSortedList } from '@/util/convert';
 import { getDashDate, getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dayjs from 'dayjs';
 import { useAtom, useAtomValue } from 'jotai';
+import { LexoRank } from 'lexorank';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef } from 'react';
@@ -54,6 +56,9 @@ const formSchema = z.object({
   goalId: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
   showOutside: z.boolean().optional().nullable(),
+  listRank: z.custom<LexoRank>().optional(),
+  matrixRank: z.custom<LexoRank>().optional(),
+  goalRank: z.custom<LexoRank>().optional(),
 });
 
 export type mainFormSchemaType = z.infer<typeof formSchema>;
@@ -65,16 +70,19 @@ const MainFormOverlay = () => {
 
   const params = useSearchParams();
   const isOpen = params.get('main-input');
-  const typeParam = params.get('type') || '';
   const goalIdParam = params.get('goalId') || '';
 
+  const { data: tasks } = useAtomValue(tasksAtom);
   const { data: goals } = useAtomValue(goalsAtom);
+  const { data: events } = useAtomValue(eventsAtom);
+  const { data: notes } = useAtomValue(notesAtom);
   const { mutate: goalMutate, isPending: isGoalPending } = useAtomValue(goalMutation);
   const { mutate: taskMutate, isPending: isTaskPending } = useAtomValue(taskMutation);
   const { mutate: eventMutate, isPending: isEventPending } = useAtomValue(eventMutation);
   const { mutate: noteMutate, isPending: isNotePending } = useAtomValue(noteMutation);
   const [defaultValues, setDefaultValues] = useAtom(mainFormDataAtom);
   const today = useAtomValue(todayAtom);
+  const typeAtomValue = useAtomValue(typeAtom);
 
   const isPending = useMemo(
     () => isGoalPending || isTaskPending || isEventPending || isNotePending,
@@ -90,18 +98,69 @@ const MainFormOverlay = () => {
     e?.preventDefault();
 
     try {
+      let sortedList;
       switch (values.type) {
         case 'goal':
-          goalMutate(values);
+          const sortedGoals = goals
+            ?.filter(
+              (item) =>
+                !!item.isImportant === !!values.isImportant &&
+                !!item.isUrgent === !!values.isUrgent
+            )
+            .sort((a, b) =>
+              b.matrixRank ? a.matrixRank?.compareTo(b.matrixRank) || 0 : 0
+            );
+          goalMutate(
+            values.id &&
+              defaultValues &&
+              !!defaultValues.isImportant === !!values.isImportant &&
+              !!defaultValues.isUrgent &&
+              !!values.isUrgent
+              ? values
+              : {
+                  ...values,
+                  matrixRank:
+                    sortedGoals && sortedGoals[sortedGoals.length - 1]
+                      ? sortedGoals[sortedGoals.length - 1]?.matrixRank?.genNext() ||
+                        LexoRank.middle()
+                      : LexoRank.middle(),
+                }
+          );
           break;
         case 'task':
-          taskMutate(values);
+          taskMutate({...values, ...createTaskRank(values, tasks, events, notes, defaultValues)});
           break;
         case 'event':
-          eventMutate(values);
+          sortedList = getSortedList(tasks, events, notes, values.date);
+          eventMutate(
+            values.id
+              ? values
+              : {
+                  ...values,
+                  listRank: !values.date
+                    ? undefined
+                    : sortedList && sortedList[sortedList.length - 1]
+                    ? sortedList[sortedList.length - 1]?.listRank?.genNext() ||
+                      LexoRank.middle()
+                    : LexoRank.middle(),
+                }
+          );
           break;
         case 'note':
-          noteMutate(values);
+          sortedList = getSortedList(tasks, events, notes, values.date);
+          noteMutate(
+            values.id
+              ? values
+              : {
+                  ...values,
+                  listRank: !values.date
+                    ? undefined
+                    : sortedList && sortedList[sortedList.length - 1]
+                    ? sortedList[sortedList.length - 1]?.listRank?.genNext() ||
+                      LexoRank.middle()
+                    : LexoRank.middle(),
+                }
+          );
           break;
         default:
           console.error('Not valid type');
@@ -121,7 +180,9 @@ const MainFormOverlay = () => {
         form.setValue('goalId', pathnameArr[pathnameArr.length - 1]);
       } else if (pathname === '/inbox') {
         form.setValue('type', 'goal');
-      } else if (pathname !== '/inbox' && pathname !== '/project') {
+      } else if (pathname === '/matrix') {
+        form.setValue('type', typeAtomValue);
+      } else {
         form.setValue('type', 'task');
         if (pathname === '/today') {
           form.setValue('date', today.toISOString());
@@ -135,7 +196,7 @@ const MainFormOverlay = () => {
     if (isOpen) {
       initTypeByPathname();
     } else {
-      form.reset();
+      form.reset({});
       setDefaultValues(undefined);
     }
   }, [isOpen]);
@@ -160,7 +221,7 @@ const MainFormOverlay = () => {
   useEffect(() => {
     if (defaultValues) {
       for (const keyStr in defaultValues) {
-        const key = keyStr as Path<mainFormSchemaType>;
+        const key = keyStr as keyof mainFormSchemaType;
         form.setValue(key, defaultValues[key]);
       }
     } else {
@@ -172,10 +233,17 @@ const MainFormOverlay = () => {
     }
   }, [defaultValues, goalIdParam]);
 
-  // NOTE: Init type by param
+
   useEffect(() => {
-    form.setValue('type', typeParam);
-  }, [typeParam]);
+    if (['/today', '/list'].includes(pathname)) {
+      if (form.watch('goalId')) {
+        form.setValue('showOutside', true);
+      } else {
+        form.setValue('showOutside', undefined);
+      }
+    }
+  }, [isGoalPage, form.watch('goalId')]);
+
 
   // NOTE: Init form when type changes
   useEffect(() => {
@@ -322,7 +390,7 @@ const MainFormOverlay = () => {
             key={key}
             className="w-full p-2 text-sm bg-red-50 text-red-400 font-bold text-center rounded-lg"
           >
-            {form.formState.errors[key as FieldPath<mainFormSchemaType>]?.message
+            {form.formState.errors[key as keyof mainFormSchemaType]?.message
               ?.split('\n')
               .map((line, i) => (
                 <p key={i}>

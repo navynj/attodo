@@ -1,13 +1,17 @@
 'use client';
 
 import OverlayForm from '@/components/overlay/OverlayForm';
-import { tasksAtom } from '@/store/task';
+import { eventsAtom } from '@/store/event';
+import { notesAtom } from '@/store/note';
+import { taskMutation, tasksAtom } from '@/store/task';
 import { mainFormDataAtom } from '@/store/ui';
+import { createTaskRank } from '@/util/convert';
 import { getDateStr } from '@/util/date';
 import { zodResolver } from '@hookform/resolvers/zod';
+import dayjs from 'dayjs';
 import { useAtomValue } from 'jotai';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { FieldPath, useForm } from 'react-hook-form';
 import { FaCalendar } from 'react-icons/fa';
 import * as z from 'zod';
@@ -23,8 +27,12 @@ const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
   const params = useSearchParams();
   const mode = params.get('mode');
 
+  const { data: tasks } = useAtomValue(tasksAtom);
+  const { data: events } = useAtomValue(eventsAtom);
+  const { data: notes } = useAtomValue(notesAtom);
+  
   const defaultValues = useAtomValue(mainFormDataAtom);
-  const { refetch } = useAtomValue(tasksAtom);
+  const { mutate: taskMutate } = useAtomValue(taskMutation);
 
   const form = useForm<dateSchemaType>({
     resolver: zodResolver(formSchema),
@@ -32,28 +40,20 @@ const TaskDateInputOverlay = ({ z: zIndex }: { z?: number }) => {
 
   const datePickerRef = useRef<HTMLInputElement | null>(null);
 
+  useEffect(() => {
+    defaultValues && form.setValue('date', dayjs(defaultValues.date).add(1, 'day').toISOString());
+  }, [defaultValues]);
+
   const submitHandler = async (values: dateSchemaType) => {
-    const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/task`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        body: JSON.stringify({
-          ...defaultValues,
-          id: undefined,
-          date: new Date(values.date),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(response.status + ' ' + response.statusText);
-      }
-
-      router.back();
-      refetch();
-    } catch (error) {
-      console.error(error);
-    }
+    taskMutate({
+      ...defaultValues,
+      id: undefined,
+      date: values.date,
+      createdAt: undefined,
+      updatedAt: undefined,
+      ...createTaskRank({...defaultValues, id: undefined, date: values.date}, tasks, events, notes, defaultValues),
+    })
+    router.back();
   };
 
   return (
